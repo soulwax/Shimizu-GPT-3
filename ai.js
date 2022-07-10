@@ -1,6 +1,9 @@
 
 require('dotenv').config()
+const VERBOSE = process.env.VERBOSE
+const { cleanResultText } = require('./helper')
 const got = require('got')
+
 const premiseJPFemale = 'Shimizu is a lively female japanese teenager living in Tokyo who is very knowledgeable about many things, especially song lyrics and literature'
 // ... add more premises
 const premises = []
@@ -24,7 +27,10 @@ const getPrompt = async (prompt, maxTokens) => {
   try {
     const response = await got.post(url, { json: params, headers: headers }).json()
     output = `${response.choices[0].text}`
-    return output.replace(/Shimizu: /g, '')
+    if(VERBOSE) console.log(`Response: ${output}`)
+    const cleanedResultText = cleanResultText(output)
+    if(VERBOSE) console.log(`Cleaned Response: ${cleanedResultText}`)
+    return cleanedResultText
   } catch (err) {
     console.log(err)
   }
