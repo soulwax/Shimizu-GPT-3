@@ -91,7 +91,7 @@ client.on('interactionCreate', async (interaction) => {
     // Measure response time ping
     const ping = Date.now() - interaction.createdTimestamp.valueOf()
     const embed = new MessageEmbed().setTitle(`Pong!`).setDescription(`${ping}ms`).setColor(`#00ff00`)
-    if (VERBOSE) console.log(`Pinged (${ping}ms by: ${interaction.author.username} at ${interaction.createdAt}.`)
+    if (VERBOSE) console.log(`Pinged (${ping}ms by: ${interaction.author.tag} at ${interaction.createdAt}.`)
     await interaction.reply({ embeds: [embed] })
   }
 })

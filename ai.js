@@ -1,14 +1,16 @@
 
 require('dotenv').config()
 const got = require('got')
+const premiseJPFemale = 'Shimizu is a lively female japanese teenager living in Tokyo who is very knowledgeable about many things, especially song lyrics and literature'
+// ... add more premises
+const premises = []
+
 
 const getPrompt = async (prompt, maxTokens) => {
   const url = 'https://api.openai.com/v1/engines/davinci/completions'
   const params = {
-    prompt:
-      'Shimizu is a chatbot that reluctantly answers questions inspired by insanity and the stories of Lovecraft:\n\n' +
-      prompt,
-    temperature: 0.5,
+    prompt: `${premiseJPFemale}:\n\n${prompt}`,
+    temperature: 0.6,
     max_tokens: maxTokens,
     top_p: 0.3,
     frequency_penalty: 0.5,
