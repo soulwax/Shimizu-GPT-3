@@ -59,6 +59,6 @@
   For any questions, please contact me with the information below:
  
   GitHub: [@soulwax](https://api.github.com/users/soulwax)
-  
-  Discord: [@soulwax](https://discordapp.com/users/soulwax)
+  Discord: [Soulwax#9079](https://discord.gg/)
+  Discord Server: [@Shimizu's Lounge](https://discord.gg/YZydPfuMEm)
   
