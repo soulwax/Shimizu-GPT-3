@@ -13,6 +13,7 @@ const rest = new REST({ version: `9` }).setToken(TOKEN)
 //#region options
 // TODO: make guild specific and save in database
 let chanceToRespond = 0.05
+let completionMode = false
 //#endregion
 
 //#region client
@@ -45,7 +46,8 @@ const commands = [
   new SlashCommandBuilder().setName('speakup').setDescription('Increases the chance to respond by 5%.'),
   new SlashCommandBuilder().setName('speakdown').setDescription('Decreases the chance to respond by 5%.'),
   new SlashCommandBuilder().setName('reset').setDescription('Resets the chance to respond to 5%.'),
-  // SlashCommandBuild for setting an integer value for chanceToRespond
+  new SlashCommandBuilder().setName('status').setDescription('Reports current status on variables.'),
+  new SlashCommandBuilder().setName('togglecompletion').setDescription('Toggles the completion mode.'),
   new SlashCommandBuilder()
     .setName('setchance')
     .setDescription('Sets the chance to respond to a specific value.')
@@ -166,6 +168,33 @@ client.on('interactionCreate', async (interaction) => {
   }
 })
 
+// status = report current status on variables
+client.on('interactionCreate', async (interaction) => {
+  if (!interaction.isCommand()) return
+  if (interaction.commandName === `status`) {
+    // Report current status on variables
+    const embed = new MessageEmbed()
+      .setTitle(`Current status on variables`)
+      .setDescription(`Chance to respond overall at: ${chanceToRespond * 100}%\nCompletion mode: ${completionMode}`)
+      .setColor(`#abff33`)
+    await interaction.reply({ embeds: [embed] })
+  }
+})
+
+// toggleCompletion = toggle completion mode
+client.on('interactionCreate', async (interaction) => {
+  if (!interaction.isCommand()) return
+  if (interaction.commandName === `togglecompletion`) {
+    // Toggle completion mode
+    completionMode = !completionMode
+    const embed = new MessageEmbed()
+      .setTitle(`Completion mode toggled`)
+      .setDescription(`Completion mode is now: ${completionMode}`)
+      .setColor(`#23ff67`)
+    await interaction.reply({ embeds: [embed] })
+  }
+})
+
 // setchance = set chance to a specific value in %
 client.on('interactionCreate', async (interaction) => {
   if (!interaction.isCommand()) return
@@ -192,12 +221,14 @@ client.on('interactionCreate', async (interaction) => {
         `
       **@${client.user.username}** guaranteed response to your message.
       **/ping** - Measures the response time of the bot.
+      **/status** - Reports the current status of global variables like chance to respond and completion mode.
       **/speak** - Sets the chance to respond to 5%.
       **/shutup** - Sets the chance to respond to 0%.
       **/speakup** - Increases the chance to respond by 5%.
       **/speakdown** - Decreases the chance to respond by 5%.
       **/speakreset** - Resets the chance to respond to 5%.
       **/setchance** - Sets the chance to respond to a certain percentage.
+      **/toggleCompletion** - Toggles the completion mode.
       **Written by**: soulwax#9204
       **Github:**: https://github.com/soulwax/Shimizu-GPT-3
       `
@@ -214,20 +245,20 @@ client.on('messageCreate', async (message) => {
   if (message.author.bot) return
 
   if (replyMention(message, client) || replyChannelDefined(message) || getRandom(chanceToRespond)) {
-    message.channel.sendTyping()
+    
     // get rid of discord names and emojis
-    let prompt = `Human: ${cleanText(message.content)}`
+    let cleanedText = cleanText(message.content, completionMode)
+    let cleanTextLength = cleanedText.length
+    if(cleanTextLength <= 0) return
+    message.channel.sendTyping()
+    let prompt = `Human: ${cleanedText}`
     if (VERBOSE) {
       console.log(`Original message content created at ${message.createdAt}:`)
-      console.log(`${message.author.username}: ${message.content}`)	// original message
-      console.log(`After trimming:`);
-      console.log(prompt);
+      console.log(`${message.author.username}: ${message.content}`) // original message
+      console.log(`After trimming: ${prompt}, clean text: ${cleanedText} length: ${cleanedText.length}`) // trimmed message
     }
 
-    let response = await getPrompt(`Human: ${prompt}`, 160).then(res => {
-      res = cleanText(res)
-      return res
-    })
+    let response = await getPrompt(`Human: ${prompt}`, 240)
     if (response === undefined) {
       response = 'I am sorry, I do not understand.'
     } else if (response.length > 2000) {
