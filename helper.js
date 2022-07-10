@@ -94,8 +94,8 @@ const cleanResultText = (text) => {
       .replace(/^\s*cleverbot\s*$/i, '')
       //find as many occurrences of 'bot' as possible and remove them
       .replace(/\s*bot\s*/gi, '')
-      //find as many occurrences of 'A.I.' as possible and remove them
-      .replace(/^\s*A\.I\.\s*$/i, '')
+      //find multiple occurrences of "A.I.:" and remove them
+      .replace(/\s*A\.I\.\s*/gi, '')
       // find as many occurrences of 'Computer:' as possible and remove all of them
       .replace(/Computer: /g, '')
       // return text
