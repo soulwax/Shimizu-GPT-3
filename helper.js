@@ -1,5 +1,7 @@
 require('dotenv').config()
 const VERBOSE = process.env.VERBOSE
+// add as many channels manually as you want
+const ALLOWED_CHANNELS_WLIST = [process.env.ALLOWED_CHANNEL_0, process.env.ALLOWED_CHANNEL_1]
 
 const getRandom = (chance) => {
   const result = Math.random() < chance
@@ -18,7 +20,8 @@ const replyChannelDefined = (message) => {
   /* TODO: implement guild specific channel + make option to allow more 
     than one channel for independent 100% discussion with bot
   */
-  const result = message.channel.id === process.env.ALLOWED_CHANNEL
+  // is the current channel in the allowed list?
+  let result = ALLOWED_CHANNELS_WLIST.includes(message.channel.id)
   if (VERBOSE && result) console.log(`Responded due to channel defined: ${message.channel.name}`)
   return result
 }
