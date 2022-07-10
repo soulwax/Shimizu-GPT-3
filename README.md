@@ -32,8 +32,11 @@
   Following commands have been implemented thus far:
   - /help: Lists all commands.
   - /ping: Returns a pong with ms response time.
+  - /status: Returns the current status of global variables like chance to respond and completion mode.
   - /shutup: Reduces chance to respond to 0
   - /speak: Sets the chance to respond randomly to 5%
+  - /reset: Resets the chance to respond to 5%
+  - /toggleCompletion: Toggles whether she should see your text as complete or not. If not, she will try to complete your text herself, then respond.
   - /speakup: Increases the chance to respond randomly by 5%
   - /speakdown: Reduces the chance to respond randomly by 5%
   - /setchance <value in %>: Sets the chance to the set value in %. 
