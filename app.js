@@ -265,6 +265,8 @@ client.on('messageCreate', async (message) => {
       //shorten response if it is too long
       response = response.substring(0, 2000)
     }
+    //check if response is an empty string
+    if(response.length == '' || response.length == undefined) return
     // reply with the prompt
     await message.reply(response)
   }

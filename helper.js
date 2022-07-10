@@ -91,6 +91,7 @@ const cleanResultText = (text) => {
       //clean up punctuation at the start of the sentence
       .replace(/^[^a-zA-Z]/, '')
       //clean up any occurence of cleverbot
+      .replace(/^\s*Cleverbot\s*$/i, '')
       .replace(/^\s*cleverbot\s*$/i, '')
       //find as many occurrences of 'bot' as possible and remove them
       .replace(/\s*bot\s*/gi, '')
