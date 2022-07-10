@@ -42,15 +42,65 @@ const replyChannelDefined = (message) => {
   return result
 }
 
-const cleanText = (text) => {
+const cleanText = (text, completionMode) => {
+  // find out if prompt ends with a letter or number:
+  let result = text
+  const lastChar = result.slice(-1)
+  const isLastCharLetter = lastChar.match(/[a-zA-Z]/)
+  const isLastCharNumber = lastChar.match(/[0-9]/)
+  const isLastCharPunctuation = lastChar.match(/[.,;:!?]/)
+
+  // if last character is a letter or number, add a period
+  if (!completionMode && !isLastCharPunctuation && (isLastCharLetter || isLastCharNumber)) {
+    // add a random punctuation
+    if (getRandom(0.2)) {
+      result += '.'
+    } else if (getRandom(0.4)) {
+      result += '!'
+    } else if (getRandom(0.6)) {
+      result += '?'
+    } else if (getRandom(0.8)) {
+      result += ':'
+    } else {
+      result += '...'
+    }
+  }
+
   return (
-    text
+    result
       //clean up discord names and emojis
       .replace(/<@[^>]*>/g, '') // removes discord name tag (id)
       .replace(/<#[^>]*>/g, '')
       .replace(/<@![^>]*>/g, '')
       .replace(/<:[^>]*>/g, '')
+      // remove unncessary spaces
+      .replace(/\s+/g, ' ')
+      // return text
+      .trim()
   )
 }
 
-module.exports = { getRandom, replyMention, replyChannelDefined, cleanText }
+// make her seem more human and reduce some weird artifacts of responses
+const cleanResultText = (text) => {
+  return (
+    text
+      //clean up 'Shimizu:' prefix
+      .replace(/Shimizu: /g, '')
+      // remove new line at the very beginning
+      .replace(/^\n/, '')
+      //clean up punctuation at the start of the sentence
+      .replace(/^[^a-zA-Z]/, '')
+      //clean up any occurence of cleverbot
+      .replace(/^\s*cleverbot\s*$/i, '')
+      //find as many occurrences of 'bot' as possible and remove them
+      .replace(/\s*bot\s*/gi, '')
+      //find as many occurrences of 'A.I.' as possible and remove them
+      .replace(/^\s*A\.I\.\s*$/i, '')
+      // find as many occurrences of 'Computer:' as possible and remove all of them
+      .replace(/Computer: /g, '')
+      // return text
+      .trim()
+  )
+}
+
+module.exports = { getRandom, replyMention, replyChannelDefined, cleanText, cleanResultText }
