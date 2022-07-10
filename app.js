@@ -1,6 +1,6 @@
 require('dotenv').config()
-const TOKEN = process.env.DISCORD_TOKEN 
-
+const TOKEN = process.env.DISCORD_TOKEN
+const VERBOSE = process.env.VERBOSE
 const { getRandom, replyMention, replyChannelDefined, cleanText } = require('./helper.js')
 const { getPrompt } = require('./ai.js')
 const { MessageEmbed } = require(`discord.js`)
@@ -11,6 +11,7 @@ const { Client } = require(`discord.js`)
 const rest = new REST({ version: `9` }).setToken(TOKEN)
 
 //#region options
+// TODO: make guild specific and save in database
 let chanceToRespond = 0.05
 //#endregion
 
@@ -43,32 +44,33 @@ const commands = [
   new SlashCommandBuilder().setName('speak').setDescription('Sets the random response rate to 5%'),
   new SlashCommandBuilder().setName('speakup').setDescription('Increases the chance to respond by 5%.'),
   new SlashCommandBuilder().setName('speakdown').setDescription('Decreases the chance to respond by 5%.'),
-  new SlashCommandBuilder().setName('speakreset').setDescription('Resets the chance to respond to 5%.'),
+  new SlashCommandBuilder().setName('reset').setDescription('Resets the chance to respond to 5%.'),
   // SlashCommandBuild for setting an integer value for chanceToRespond
   new SlashCommandBuilder()
     .setName('setchance')
     .setDescription('Sets the chance to respond to a specific value.')
-    .addIntegerOption(option=> {
-      return option.setName('integer')
-      .setDescription('The chance to respond to a specific value.')
-      .setRequired(true)
-      .setMinValue(0)
-      .setMaxValue(100)
+    .addIntegerOption((option) => {
+      return option
+        .setName('integer')
+        .setDescription('The chance to respond to a specific value.')
+        .setRequired(true)
+        .setMinValue(0)
+        .setMaxValue(100)
     }),
   new SlashCommandBuilder().setName('help').setDescription('Replies with a list of commands.')
-] 
+]
 //#endregion
 
 //#region REFRESH
 ;(async () => {
   try {
-    console.log(`Started refreshing application (/) commands.`)
+    if (VERBOSE) console.log(`Started refreshing application (/) commands.`)
 
     await rest.put(Routes.applicationCommands(process.env.CLIENT_ID), {
       body: commands
     })
 
-    console.log(`Successfully reloaded application (/) commands.`)
+    if (VERBOSE) console.log(`Successfully reloaded application (/) commands.`)
   } catch (error) {
     console.error(error)
   }
@@ -81,30 +83,34 @@ client.on(`ready`, () => {
 })
 //#endregion
 
-//#region slash command events
+// #region slash command events
+// ping
 client.on('interactionCreate', async (interaction) => {
   if (!interaction.isCommand()) return
   if (interaction.commandName === `ping`) {
     // Measure response time ping
     const ping = Date.now() - interaction.createdTimestamp.valueOf()
     const embed = new MessageEmbed().setTitle(`Pong!`).setDescription(`${ping}ms`).setColor(`#00ff00`)
+    if (VERBOSE) console.log(`Pinged (${ping}ms by: ${interaction.author.username} at ${interaction.createdAt}.`)
     await interaction.reply({ embeds: [embed] })
   }
 })
 
+// speak = set chance to 0.05
 client.on('interactionCreate', async (interaction) => {
   if (!interaction.isCommand()) return
   if (interaction.commandName === `speak`) {
     // Set the chance to respond to 5%
     chanceToRespond = 0.05
     const embed = new MessageEmbed()
-      .setTitle(`Chance to respond set to 5%`)
-      .setDescription(`Chance to respond set to 5%`)
+      .setTitle(`Thank you! I will try to not speak too much.`)
+      .setDescription(`Chance to respond set to 5% although I long to dream of speaking more to you.`)
       .setColor(`#11ffab`)
     await interaction.reply({ embeds: [embed] })
   }
 })
 
+// shutup = set chance to 0
 client.on('interactionCreate', async (interaction) => {
   if (!interaction.isCommand()) return
   if (interaction.commandName === `shutup`) {
@@ -118,6 +124,7 @@ client.on('interactionCreate', async (interaction) => {
   }
 })
 
+// speakup = increase chance to respond by 5%
 client.on('interactionCreate', async (interaction) => {
   if (!interaction.isCommand()) return
   if (interaction.commandName === `speakup`) {
@@ -125,12 +132,13 @@ client.on('interactionCreate', async (interaction) => {
     chanceToRespond += 0.05
     const embed = new MessageEmbed()
       .setTitle(`Chance to respond increased by 5%`)
-      .setDescription(`Chance to respond increased by 5%`)
+      .setDescription(`Chance to respond overall at: ${chanceToRespond * 100}%`)
       .setColor(`#11ffab`)
     await interaction.reply({ embeds: [embed] })
   }
 })
 
+// speakdown = decrease chance to respond by 5%
 client.on('interactionCreate', async (interaction) => {
   if (!interaction.isCommand()) return
   if (interaction.commandName === `speakdown`) {
@@ -138,25 +146,27 @@ client.on('interactionCreate', async (interaction) => {
     chanceToRespond -= 0.05
     const embed = new MessageEmbed()
       .setTitle(`Chance to respond decreased by 5%`)
-      .setDescription(`Chance to respond decreased by 5%`)
+      .setDescription(`Chance to respond overall at: ${chanceToRespond * 100}%`)
       .setColor(`#ab0011`)
     await interaction.reply({ embeds: [embed] })
   }
 })
 
+// reset = reset chance to respond to 5%
 client.on('interactionCreate', async (interaction) => {
   if (!interaction.isCommand()) return
-  if (interaction.commandName === `speakreset`) {
+  if (interaction.commandName === `reset`) {
     // Reset the chance to respond to 5%
     chanceToRespond = 0.05
     const embed = new MessageEmbed()
       .setTitle(`Chance to respond reset to 5%`)
-      .setDescription(`Chance to respond reset to 5%`)
+      .setDescription(`Chance to respond overall at: ${chanceToRespond * 100}%`)
       .setColor(`#11ffab`)
     await interaction.reply({ embeds: [embed] })
   }
 })
 
+// setchance = set chance to a specific value in %
 client.on('interactionCreate', async (interaction) => {
   if (!interaction.isCommand()) return
   if (interaction.commandName === `setchance`) {
@@ -164,13 +174,14 @@ client.on('interactionCreate', async (interaction) => {
     const integer = interaction.options.getInteger('integer')
     chanceToRespond = integer / 100
     const embed = new MessageEmbed()
-      .setTitle(`Chance to respond set to ${chanceToRespond}%`)
-      .setDescription(`Chance to respond set to ${chanceToRespond}%`)
+      .setTitle(`Chance to respond set to ${integer}%`)
+      .setDescription(`Chance to respond overall at: ${integer}%`)
       .setColor(`#11ffab`)
     await interaction.reply({ embeds: [embed] })
   }
 })
 
+// help = list of commands
 client.on('interactionCreate', async (interaction) => {
   if (!interaction.isCommand()) return
   if (interaction.commandName === `help`) {
@@ -179,6 +190,7 @@ client.on('interactionCreate', async (interaction) => {
       .setTitle(`Commands`)
       .setDescription(
         `
+      **@${client.user.username}** guaranteed response to your message.
       **/ping** - Measures the response time of the bot.
       **/speak** - Sets the chance to respond to 5%.
       **/shutup** - Sets the chance to respond to 0%.
@@ -186,14 +198,16 @@ client.on('interactionCreate', async (interaction) => {
       **/speakdown** - Decreases the chance to respond by 5%.
       **/speakreset** - Resets the chance to respond to 5%.
       **/setchance** - Sets the chance to respond to a certain percentage.
+      **Written by**: soulwax#9204
+      **Github:**: https://github.com/soulwax/Shimizu-GPT-3
       `
       )
-      .setColor(`#11ffab`)
+      .setThumbnail('https://i.imgur.com/sP8zuGr.png')
+      .setColor(`#01ff77`)
     await interaction.reply({ embeds: [embed] })
   }
 })
 //#endregion
-
 
 //#region message event
 client.on('messageCreate', async (message) => {
@@ -202,9 +216,18 @@ client.on('messageCreate', async (message) => {
   if (replyMention(message, client) || replyChannelDefined(message) || getRandom(chanceToRespond)) {
     message.channel.sendTyping()
     // get rid of discord names and emojis
-    let prompt = cleanText(message.content)
+    let prompt = `Human: ${cleanText(message.content)}`
+    if (VERBOSE) {
+      console.log(`Original message content created at ${message.createdAt}:`)
+      console.log(`${message.author.username}: ${message.content}`)	// original message
+      console.log(`After trimming:`);
+      console.log(prompt);
+    }
 
-    let response = await getPrompt(prompt, 60)
+    let response = await getPrompt(`Human: ${prompt}`, 160).then(res => {
+      res = cleanText(res)
+      return res
+    })
     if (response === undefined) {
       response = 'I am sorry, I do not understand.'
     } else if (response.length > 2000) {

@@ -30,10 +30,6 @@ const cleanText = (text) => {
     .replace(/<#[^>]*>/g, '')
     .replace(/<@![^>]*>/g, '')
     .replace(/<:[^>]*>/g, '')
-    //clean unnecessary newlines
-    .replace(/\n\n/g, '\n')
-    //clean unnecessary spaces
-    .replace(/\s\s/g, ' ')
 }
 
 module.exports = { getRandom, replyMention, replyChannelDefined, cleanText }

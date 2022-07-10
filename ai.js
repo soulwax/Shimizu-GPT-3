@@ -5,12 +5,15 @@ const got = require('got')
 const getPrompt = async (prompt, maxTokens) => {
   const url = 'https://api.openai.com/v1/engines/davinci/completions'
   const params = {
-    prompt: prompt,
-    temperature: 0,
+    prompt:
+      'Shimizu is a chatbot that reluctantly answers questions inspired by insanity and the stories of Lovecraft:\n\n' +
+      prompt,
+    temperature: 0.5,
     max_tokens: maxTokens,
-    top_p: 1.0,
-    frequency_penalty: 0.0,
-    presence_penalty: 0.0
+    top_p: 0.3,
+    frequency_penalty: 0.5,
+    presence_penalty: 0.0,
+    stop: 'Human:'
   }
   const headers = {
     Authorization: `Bearer ${process.env.OPENAI_API_KEY}`
@@ -19,7 +22,7 @@ const getPrompt = async (prompt, maxTokens) => {
   try {
     const response = await got.post(url, { json: params, headers: headers }).json()
     output = `${response.choices[0].text}`
-    return output
+    return output.replace(/Shimizu: /g, '')
   } catch (err) {
     console.log(err)
   }
