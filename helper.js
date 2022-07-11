@@ -90,15 +90,14 @@ const cleanResultText = (text) => {
       .replace(/^\n/, '')
       //clean up punctuation at the start of the sentence
       .replace(/^[^a-zA-Z]/, '')
-      //clean up any occurence of cleverbot
-      .replace(/^\s*Cleverbot\s*$/i, '')
-      .replace(/^\s*cleverbot\s*$/i, '')
-      //find as many occurrences of 'bot' as possible and remove them
+      // cleanup 'cleverbot' occurrences
+      .replace(/\s*cleverbot\s*/gi, '')
+      // cleanup 'bot' occurrences
       .replace(/\s*bot\s*/gi, '')
-      //find multiple occurrences of "A.I.:" and remove them
+      // cleanup 'A.I.' occurrences
       .replace(/\s*A\.I\.\s*/gi, '')
-      // find as many occurrences of 'Computer:' as possible and remove all of them
-      .replace(/Computer: /g, '')
+      // cleanup 'computer' occurrences
+      .replace(/\s*Computer:\s*/gi, '')
       // return text
       .trim()
   )
