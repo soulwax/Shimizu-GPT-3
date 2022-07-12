@@ -1,7 +1,7 @@
 require('dotenv').config()
 const TOKEN = process.env.DISCORD_TOKEN
 const VERBOSE = process.env.VERBOSE
-const { getRandom, replyMention, replyChannelDefined, cleanText } = require('./helper.js')
+const { getRandom, replyMention, isChannelWhitelisted, isChannelBlacklisted, cleanText } = require('./helper.js')
 const { getPrompt } = require('./ai.js')
 const { MessageEmbed } = require(`discord.js`)
 const { SlashCommandBuilder } = require(`@discordjs/builders`)
@@ -244,7 +244,9 @@ client.on('interactionCreate', async (interaction) => {
 client.on('messageCreate', async (message) => {
   if (message.author.bot) return
 
-  if (replyMention(message, client) || replyChannelDefined(message) || getRandom(chanceToRespond)) {
+  if (replyMention(message, client) 
+    || isChannelWhitelisted(message) 
+    ||  (getRandom(chanceToRespond) && !isChannelBlacklisted(message))) {
     
     // get rid of discord names and emojis
     let cleanedText = cleanText(message.content, completionMode)

@@ -1,12 +1,15 @@
 require('dotenv').config()
+
+  /* TODO: implement guild specific channel + make option to allow more 
+    than one channel for independent 100% discussion with bot */
+
 const VERBOSE = process.env.VERBOSE
 // add as many channels manually as you want
-const ALLOWED_CHANNELS_WLIST = [
-  process.env.ALLOWED_CHANNEL_0,
-  process.env.ALLOWED_CHANNEL_1,
-  process.env.ALLOWED_CHANNEL_2
-]
-const BLACKLIST = [
+// this is messy because dotenv doesn't allow arrays 
+// ? Switch to config.json?
+
+const CHANNEL_WHITELIST = [process.env.ALLOWED_CHANNEL_0, process.env.ALLOWED_CHANNEL_1, process.env.ALLOWED_CHANNEL_2]
+const CHANNEL_BLACKLIST = [
   process.env.BLACKLIST_0,
   process.env.BLACKLIST_1,
   process.env.BLACKLIST_2,
@@ -32,14 +35,19 @@ const replyMention = (message, client) => {
   return result
 }
 
-const replyChannelDefined = (message) => {
-  /* TODO: implement guild specific channel + make option to allow more 
-    than one channel for independent 100% discussion with bot
-  */
-  // is the current channel in the allowed list?
-  let result = ALLOWED_CHANNELS_WLIST.includes(message.channel.id) && !BLACKLIST.includes(message.channel.id)
-  if (VERBOSE && result) console.log(`Responded due to channel defined: ${message.channel.name}`)
-  return result
+const isChannelWhitelisted = (message) => {
+  const channelWhitelisted = CHANNEL_WHITELIST.includes(message.channel.id)
+  if (channelWhitelisted) {
+    if(VERBOSE) console.log(`Responded due to channel whitelist: ${message.channel.id}`)
+    return true
+  }
+  return false
+}
+
+const isChannelBlacklisted = (message) => {
+  const channelBlacklisted = CHANNEL_BLACKLIST.includes(message.channel.id)
+  if (channelBlacklisted) return true
+  return false
 }
 
 const cleanText = (text, completionMode) => {
@@ -103,4 +111,4 @@ const cleanResultText = (text) => {
   )
 }
 
-module.exports = { getRandom, replyMention, replyChannelDefined, cleanText, cleanResultText }
+module.exports = { getRandom, replyMention, isChannelWhitelisted, isChannelBlacklisted, cleanText, cleanResultText }
