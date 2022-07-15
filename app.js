@@ -1,45 +1,53 @@
-require('dotenv').config()
+//#region enviroment variables
+require('dotenv').config({ path: __dirname + '/.env' })
 const TOKEN = process.env.DISCORD_TOKEN
 const VERBOSE = process.env.VERBOSE
-const { getRandom, replyMention, isChannelWhitelisted, isChannelBlacklisted, cleanText } = require('./helper.js')
-const { getPrompt } = require('./ai.js')
+const WHITELIST = process.env.WHITELIST.split(',')
+const BLACKLIST = process.env.BLACKLIST.split(',')
+//#endregion enviroment variables
+
+//#region requires
+const mongoose = require(`mongoose`)
 const { MessageEmbed } = require(`discord.js`)
 const { SlashCommandBuilder } = require(`@discordjs/builders`)
 const { REST } = require(`@discordjs/rest`)
 const { Routes } = require(`discord-api-types/v9`)
 const { Client } = require(`discord.js`)
 const rest = new REST({ version: `9` }).setToken(TOKEN)
+//#region custom requires
+const { getRandom, replyMention, isChannelWhitelisted, isChannelBlacklisted, cleanText } = require('./helper.js')
+const { getPrompt } = require('./ai.js')
+//#endregion custom requires
+//#endregion requires
+
+//#region myself
+const myself = {
+  id: process.env.MY_ID,
+  name: process.env.MY_NAME,
+  premise: process.env.MY_PREMISE,
+  intents: process.env.MY_INTENTS.split(','),
+  key: process.env.OPENAI_API_KEY,
+  verbose: process.env.VERBOSE,
+  tokens: 240
+}
+//#endregion myself
 
 //#region options
-// TODO: make guild specific and save in database
 let chanceToRespond = 0.05
 let completionMode = false
-//#endregion
+//#endregion options
 
 //#region client
 const client = new Client({
-  intents: [
-    `GUILDS`,
-    `GUILD_MESSAGES`,
-    `GUILD_PRESENCES`,
-    `GUILD_MEMBERS`,
-    `GUILD_INTEGRATIONS`,
-    `GUILD_WEBHOOKS`,
-    `GUILD_BANS`,
-    `GUILD_INVITES`,
-    `GUILD_VOICE_STATES`,
-    `GUILD_MESSAGE_REACTIONS`,
-    `GUILD_MESSAGE_TYPING`,
-    `DIRECT_MESSAGES`,
-    `DIRECT_MESSAGE_REACTIONS`,
-    `DIRECT_MESSAGE_TYPING`,
-    `GUILD_SCHEDULED_EVENTS`
-  ]
+  intents: myself.intents
 })
+client.setMaxListeners(15)
 //#endregion
 
 //#region commands
+
 const commands = [
+  new SlashCommandBuilder().setName(`experiment`).setDescription(`Start an experiment`),
   new SlashCommandBuilder().setName('ping').setDescription('Replies with "pong" if the bot is online.'),
   new SlashCommandBuilder().setName('shutup').setDescription('Sets the random response rate to 0%'),
   new SlashCommandBuilder().setName('speak').setDescription('Sets the random response rate to 5%'),
@@ -62,7 +70,6 @@ const commands = [
   new SlashCommandBuilder().setName('help').setDescription('Replies with a list of commands.')
 ]
 //#endregion
-
 //#region REFRESH
 ;(async () => {
   try {
@@ -79,14 +86,42 @@ const commands = [
 })()
 //#endregion
 
+
 //#region ready event
 client.on(`ready`, () => {
   console.log(`Logged in as ${client.user.tag}!`)
 })
 //#endregion
 
+//#region experiment command
+client.on('interactionCreate', async (interaction) => {
+    if (!interaction.isCommand()) return
+    if (interaction.commandName === `status`) {
+      // Report current status on variables
+      const embed = new MessageEmbed()
+        .setTitle(`Current status on variables`)
+        .setDescription(`Chance to respond overall at: ${chanceToRespond * 100}%\nCompletion mode: ${completionMode}`)
+        .setColor(`#abff33`)
+        .setFooter(new EmbedFooterData() | null)
+      await interaction.reply({ embeds: [embed] })
+    }
+})
+//#endregion experiment command
+
+
 // #region slash command events
-// ping
+client.on('interactionCreate', async (interaction) => {
+  if (!interaction.isCommand()) return
+  if (interaction.commandName === `experiment`) {
+    // Start an experiment
+    const embed = new MessageEmbed()
+      .setTitle(`Start an experiment`)
+      .setDescription(`Start an experiment in this channel.`)
+      .setColor(`#abff33`)
+    await interaction.reply({ embeds: [embed] })
+  }
+})
+
 client.on('interactionCreate', async (interaction) => {
   if (!interaction.isCommand()) return
   if (interaction.commandName === `ping`) {
@@ -220,6 +255,7 @@ client.on('interactionCreate', async (interaction) => {
       .setDescription(
         `
       **@${client.user.username}** guaranteed response to your message.
+      **/experiment** - Start an experiment.
       **/ping** - Measures the response time of the bot.
       **/status** - Reports the current status of global variables like chance to respond and completion mode.
       **/speak** - Sets the chance to respond to 5%.
@@ -245,8 +281,9 @@ client.on('messageCreate', async (message) => {
   if (message.author.bot) return
 
   if (replyMention(message, client) 
-    || isChannelWhitelisted(message) 
-    ||  (getRandom(chanceToRespond) && !isChannelBlacklisted(message))) {
+    || isChannelWhitelisted(message, WHITELIST) 
+    ||  (getRandom(chanceToRespond) 
+    && !isChannelBlacklisted(message, BLACKLIST))) {
     
     // get rid of discord names and emojis
     let cleanedText = cleanText(message.content, completionMode)
@@ -260,7 +297,7 @@ client.on('messageCreate', async (message) => {
       console.log(`After trimming: ${prompt}, clean text: ${cleanedText} length: ${cleanedText.length}`) // trimmed message
     }
 
-    let response = await getPrompt(`Human: ${prompt}`, 240)
+    let response = await getPrompt(prompt, myself)
     if (response === undefined) {
       response = 'I am sorry, I do not understand.'
     } else if (response.length > 2000) {

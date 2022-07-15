@@ -5,32 +5,13 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "type": "node",
-            "request": "launch",
-            "name": "Launch Program",
-            "skipFiles": [
-                "<node_internals>/**"
-            ],
-            "program": "./app.js"
-        },
-        {
-            "console": "integratedTerminal",
-            "internalConsoleOptions": "neverOpen",
-            "name": "nodemon",
-            "program": "${workspaceFolder}/app.js",
-            "request": "launch",
-            "restart": true,
-            "runtimeExecutable": "nodemon",
+            "name": "Attach",
+            "port": 7559,
+            "request": "attach",
             "skipFiles": [
                 "<node_internals>/**"
             ],
             "type": "node"
-        },
-        {
-            "command": "npm run debug",
-            "name": "Debug with nodemon on port 7226",
-            "request": "launch",
-            "type": "node-terminal"
         }
     ]
 }

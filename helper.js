@@ -1,26 +1,7 @@
-require('dotenv').config()
-
-  /* TODO: implement guild specific channel + make option to allow more 
-    than one channel for independent 100% discussion with bot */
-
 const VERBOSE = process.env.VERBOSE
 // add as many channels manually as you want
 // this is messy because dotenv doesn't allow arrays 
 // ? Switch to config.json?
-
-const CHANNEL_WHITELIST = [process.env.ALLOWED_CHANNEL_0, process.env.ALLOWED_CHANNEL_1, process.env.ALLOWED_CHANNEL_2]
-const CHANNEL_BLACKLIST = [
-  process.env.BLACKLIST_0,
-  process.env.BLACKLIST_1,
-  process.env.BLACKLIST_2,
-  process.env.BLACKLIST_3,
-  process.env.BLACKLIST_4,
-  process.env.BLACKLIST_5,
-  process.env.BLACKLIST_6,
-  process.env.BLACKLIST_7,
-  process.env.BLACKLIST_8,
-  process.env.BLACKLIST_9
-]
 
 const getRandom = (chance) => {
   const result = Math.random() < chance
@@ -35,19 +16,14 @@ const replyMention = (message, client) => {
   return result
 }
 
-const isChannelWhitelisted = (message) => {
-  const channelWhitelisted = CHANNEL_WHITELIST.includes(message.channel.id)
-  if (channelWhitelisted) {
-    if(VERBOSE) console.log(`Responded due to channel whitelist: ${message.channel.id}`)
-    return true
-  }
-  return false
+const isChannelWhitelisted = (message, whitelist) => {
+  const channelWhitelisted = whitelist.includes(message.channel.id)
+  if (channelWhitelisted && VERBOSE) console.log(`Responded due to channel whitelist: ${message.channel.id}`)
+  return channelWhitelisted
 }
 
-const isChannelBlacklisted = (message) => {
-  const channelBlacklisted = CHANNEL_BLACKLIST.includes(message.channel.id)
-  if (channelBlacklisted) return true
-  return false
+const isChannelBlacklisted = (message, blacklist) => {
+  return blacklist.includes(message.channel.id)
 }
 
 const cleanText = (text, completionMode) => {
@@ -99,9 +75,9 @@ const cleanResultText = (text) => {
       //clean up punctuation at the start of the sentence
       .replace(/^[^a-zA-Z]/, '')
       // cleanup 'cleverbot' occurrences
-      .replace(/\s*cleverbot\s*/gi, '')
+      .replace(/\s*cleverbot:\s*/gi, '')
       // cleanup 'bot' occurrences
-      .replace(/\s*bot\s*/gi, '')
+      .replace(/\s*bot:\s*/gi, '')
       // cleanup 'A.I.' occurrences
       .replace(/\s*A\.I\.\s*/gi, '')
       // cleanup 'computer' occurrences
