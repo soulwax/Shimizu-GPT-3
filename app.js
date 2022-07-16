@@ -1,7 +1,7 @@
 //#region enviroment variables
 require('dotenv').config({ path: __dirname + '/.env' })
 const TOKEN = process.env.DISCORD_TOKEN
-const VERBOSE = process.env.VERBOSE
+const VERBOSE = process.env.VERBOSE === 'true' ? true : false
 const WHITELIST = process.env.WHITELIST.split(',')
 const BLACKLIST = process.env.BLACKLIST.split(',')
 //#endregion enviroment variables
@@ -29,7 +29,6 @@ db.once(`open`, () => {
 })
 //#endregion mongoose
 
-
 //#region myself
 const myself = {
   id: process.env.MY_ID,
@@ -43,6 +42,7 @@ const myself = {
 //#endregion myself
 
 //#region options
+// TODO: options valid for a given guild
 let chanceToRespond = 0.05
 let completionMode = false
 //#endregion options
@@ -50,8 +50,7 @@ let completionMode = false
 //#region client
 const client = new Client({
   intents: myself.intents
-})
-client.setMaxListeners(15)
+}).setMaxListeners(15)
 //#endregion
 
 //#region commands
@@ -96,28 +95,35 @@ const commands = [
 })()
 //#endregion
 
-
 //#region ready event
 client.on(`ready`, () => {
   console.log(`Logged in as ${client.user.tag}!`)
+  console.log(`\tVerbose Mode: ${VERBOSE}`)
+  if(VERBOSE) console.log(
+    `Myself:
+    \tID: ${myself.id}
+    \tName: ${myself.name}
+    \tPremise: ${myself.premise}
+    \tDiscord Intents: ${myself.intents.join(', ')},
+    \topenAI token: ${myself.key},`
+  )
 })
 //#endregion
 
 //#region experiment command
 client.on('interactionCreate', async (interaction) => {
-    if (!interaction.isCommand()) return
-    if (interaction.commandName === `status`) {
-      // Report current status on variables
-      const embed = new MessageEmbed()
-        .setTitle(`Current status on variables`)
-        .setDescription(`Chance to respond overall at: ${chanceToRespond * 100}%\nCompletion mode: ${completionMode}`)
-        .setColor(`#abff33`)
-        .setFooter(new EmbedFooterData() | null)
-      await interaction.reply({ embeds: [embed] })
-    }
+  if (!interaction.isCommand()) return
+  if (interaction.commandName === `status`) {
+    // Report current status on variables
+    const embed = new MessageEmbed()
+      .setTitle(`Current status on variables`)
+      .setDescription(`Chance to respond overall at: ${chanceToRespond * 100}%\nCompletion mode: ${completionMode}`)
+      .setColor(`#abff33`)
+      .setFooter(new EmbedFooterData() | null)
+    await interaction.reply({ embeds: [embed] })
+  }
 })
 //#endregion experiment command
-
 
 // #region slash command events
 client.on('interactionCreate', async (interaction) => {
@@ -290,15 +296,15 @@ client.on('interactionCreate', async (interaction) => {
 client.on('messageCreate', async (message) => {
   if (message.author.bot) return
 
-  if (replyMention(message, client) 
-    || isChannelWhitelisted(message, WHITELIST) 
-    ||  (getRandom(chanceToRespond) 
-    && !isChannelBlacklisted(message, BLACKLIST))) {
-    
+  if (
+    replyMention(message, client) ||
+    isChannelWhitelisted(message, WHITELIST) ||
+    (getRandom(chanceToRespond) && !isChannelBlacklisted(message, BLACKLIST))
+  ) {
     // get rid of discord names and emojis
     let cleanedText = cleanText(message.content, completionMode)
     let cleanTextLength = cleanedText.length
-    if(cleanTextLength <= 0) return
+    if (cleanTextLength <= 0) return
     message.channel.sendTyping()
     let prompt = `Human: ${cleanedText}`
     if (VERBOSE) {
@@ -315,7 +321,7 @@ client.on('messageCreate', async (message) => {
       response = response.substring(0, 2000)
     }
     //check if response is an empty string
-    if(response.length == '' || response.length == undefined) return
+    if (response.length == '' || response.length == undefined) return
     // reply with the prompt
     await message.reply(response)
   }

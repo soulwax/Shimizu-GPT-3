@@ -1,4 +1,4 @@
-const VERBOSE = process.env.VERBOSE
+const VERBOSE = process.env.VERBOSE === 'true' ? true : false;
 
 /**
  * Takes a number between 0 and 1 and returns if Math.random() is less than number

@@ -1,9 +1,15 @@
 # Shimizu-GPT-3
 
   ![Badge for GitHub repo top language](https://img.shields.io/github/languages/top/soulwax/Shimizu-GPT-3?style=flat&logo=appveyor) ![Badge for GitHub last commit](https://img.shields.io/github/last-commit/soulwax/Shimizu-GPT-3?style=flat&logo=appveyor)
-  
-  Check out the badges hosted by [shields.io](https://shields.io/).
-  
+  [![](https://dcbadge.vercel.app/api/server/bjWkUsDchk?style=flat)](https://discord.gg/bjWkUsDchk)
+
+
+  ## Rules for collaboration:
+  - Provide documentation for functions and classes.
+  - If possible provide unit testing
+  - If possible provide integration testing
+  - Pull requests are welcome!
+
   
   ## Description 
   
