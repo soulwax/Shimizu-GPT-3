@@ -68,20 +68,16 @@ const cleanText = (text, completionMode) => {
 const cleanResultText = (text) => {
   return (
     text
-      //clean up 'Shimizu:' prefix
-      .replace(/Shimizu: /g, '')
       // remove new line at the very beginning
       .replace(/^\n/, '')
       //clean up punctuation at the start of the sentence
       .replace(/^[^a-zA-Z]/, '')
-      // cleanup 'cleverbot' occurrences
-      .replace(/\s*cleverbot:\s*/gi, '')
-      // cleanup 'bot' occurrences
-      .replace(/\s*bot:\s*/gi, '')
-      // cleanup 'A.I.' occurrences
-      .replace(/\s*A\.I\.\s*/gi, '')
-      // cleanup 'computer' occurrences
-      .replace(/\s*Computer:\s*/gi, '')
+      //clean up any whitespace at the beginning of the sentence and remove it
+      .replace(/^\s+/, '')
+      //clean up anything until ':'
+      .replace(/.+?(?=:)/, '')
+      //clean up the colon and following whitespace
+      .replace(/:?\s+/, '')
       // return text
       .trim()
   )
