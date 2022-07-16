@@ -1,13 +1,24 @@
 const VERBOSE = process.env.VERBOSE
-// add as many channels manually as you want
-// this is messy because dotenv doesn't allow arrays 
-// ? Switch to config.json?
+
+/**
+ * Takes a number between 0 and 1 and returns if Math.random() is less than number
+ * @param {number} chance between 0 and 1 
+ * @returns {boolean}
+ */
 
 const getRandom = (chance) => {
   const result = Math.random() < chance
   if (VERBOSE && result) console.log(`Responded due to Chance: ${chance}`)
   return result
 }
+
+/**
+ * Function returns true if the message contains a mention
+ * @param {string} message a string containing the message
+ * @param {object} client a discord.js client
+ * @returns {boolean}
+ */
+
 
 const replyMention = (message, client) => {
   let name = client.user.username.toLowerCase()
@@ -16,15 +27,35 @@ const replyMention = (message, client) => {
   return result
 }
 
+/**Function returns true if the message was sent in a whitelisted channel
+ * @param {string} message the message string
+ * @param {array} whitelist an array of channel ids 
+ * @returns {boolean}
+ */
+
 const isChannelWhitelisted = (message, whitelist) => {
   const channelWhitelisted = whitelist.includes(message.channel.id)
   if (channelWhitelisted && VERBOSE) console.log(`Responded due to channel whitelist: ${message.channel.id}`)
   return channelWhitelisted
 }
 
+/**Function returns true if the message was sent in a blacklisted channel
+ * @param {string} message the message string
+ * @param {array} blacklist an array of blacklisted channel ids 
+ * @returns {boolean} boolean value
+ */
+
 const isChannelBlacklisted = (message, blacklist) => {
   return blacklist.includes(message.channel.id)
 }
+
+/**
+ * Function that cleans the text and adds punctuation (a period)
+ * Step two consists of cleaning the text and getting rid of discord names, emojis and unnecessary whitespaces.
+ * @param {string} text the given text to clean or modify
+ * @param {boolean} completionMode set to true if you don't want to add random punctuation at the end of the text 
+ * @returns {string} the cleaned and/or modified text
+ */
 
 const cleanText = (text, completionMode) => {
   // find out if prompt ends with a letter or number:
@@ -36,18 +67,7 @@ const cleanText = (text, completionMode) => {
 
   // if last character is a letter or number, add a period
   if (!completionMode && !isLastCharPunctuation && (isLastCharLetter || isLastCharNumber)) {
-    // add a random punctuation
-    if (getRandom(0.2)) {
-      result += '.'
-    } else if (getRandom(0.4)) {
-      result += '!'
-    } else if (getRandom(0.6)) {
-      result += '?'
-    } else if (getRandom(0.8)) {
-      result += ':'
-    } else {
-      result += '...'
-    }
+    result += '.'
   }
 
   return (
@@ -64,7 +84,13 @@ const cleanText = (text, completionMode) => {
   )
 }
 
-// make her seem more human and reduce some weird artifacts of responses
+/**
+ * Function that cleanses the output of a typical openAI response
+ * Things that get cleaned up: 
+ * Newlines, whitespaces, punctuation at the start and anything that is concluded by a colon
+ * @param {string} text input text to clean
+ * @returns {string} cleaned text
+ */
 const cleanResultText = (text) => {
   return (
     text
