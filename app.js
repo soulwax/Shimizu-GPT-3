@@ -4,6 +4,7 @@ const TOKEN = process.env.DISCORD_TOKEN
 const VERBOSE = process.env.VERBOSE === 'true' ? true : false
 const WHITELIST = process.env.WHITELIST.split(',')
 const BLACKLIST = process.env.BLACKLIST.split(',')
+const DB_CONNECTION_STRING = process.env.DB_CONNECTION_STRING
 //#endregion enviroment variables
 
 //#region requires
@@ -21,12 +22,8 @@ const { getPrompt } = require('./ai.js')
 //#endregion requires
 
 //#region mongoose
-mongoose.connect(`mongodb://localhost/shimizu`, { useNewUrlParser: true })
-const db = mongoose.connection
-db.on(`error`, console.error.bind(console, `connection error:`))
-db.once(`open`, () => {
-  console.log(`Connected to MongoDB`)
-})
+const db = require('./db.js')(mongoose, DB_CONNECTION_STRING)
+//TODO: use database from here on
 //#endregion mongoose
 
 //#region myself
