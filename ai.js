@@ -7,9 +7,9 @@ const got = require('got')
 const getPrompt = async (prompt, myself) => {
   const url = 'https://api.openai.com/v1/engines/davinci/completions'
   const params = {
-    prompt: `${myself.name} ${myself.premise}\n\n${prompt}`, /*history aus der datenbank*/
+    prompt: `${myself.name} ${myself.premise}\n\n${prompt}\n${myself.name}`, /*history aus der datenbank*/
     temperature: 0.7,
-    max_tokens: myself.tokens,
+    max_tokens: parseInt(myself.tokens),
     top_p: 0.3,
     frequency_penalty: 0.5,
     presence_penalty: 0.0,

@@ -20,6 +20,16 @@ const { getPrompt } = require('./ai.js')
 //#endregion custom requires
 //#endregion requires
 
+//#region mongoose
+mongoose.connect(`mongodb://localhost/shimizu`, { useNewUrlParser: true })
+const db = mongoose.connection
+db.on(`error`, console.error.bind(console, `connection error:`))
+db.once(`open`, () => {
+  console.log(`Connected to MongoDB`)
+})
+//#endregion mongoose
+
+
 //#region myself
 const myself = {
   id: process.env.MY_ID,
@@ -28,7 +38,7 @@ const myself = {
   intents: process.env.MY_INTENTS.split(','),
   key: process.env.OPENAI_API_KEY,
   verbose: process.env.VERBOSE,
-  tokens: 240
+  tokens: parseInt(process.env.MY_MAX_TOKENS)
 }
 //#endregion myself
 

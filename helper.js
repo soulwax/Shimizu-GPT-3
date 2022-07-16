@@ -76,8 +76,6 @@ const cleanResultText = (text) => {
       .replace(/^\s+/, '')
       //clean up anything until ':'
       .replace(/.+?(?=:)/, '')
-      //clean up the colon and following whitespace
-      .replace(/:?\s+/, '')
       // return text
       .trim()
   )
