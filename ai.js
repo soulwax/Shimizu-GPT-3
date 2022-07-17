@@ -7,14 +7,14 @@ const got = require('got')
 /**
  * A function that generates an AI response to a prompt by generating a RESTful API call to OpenAI
  * At this point, the function uses the 'davinci' engine.
- * @param {string} prompt The prompt is a string that represents user input 
+ * @param {String} prompt The prompt is a String that represents user input 
  * for the openAI engine to understand, interpret and generate a response.
  * A typical prompt looks like this: "Human: What is your name?"
- * @param {object} myself An object that contains openAI credentials, 
+ * @param {Object} myself An Object that contains openAI credentials, 
  * identity in the form of a premise, tokens, 
  * a verbose flag for debugging and the name of the AI.
  * The purpose of 'myself' is to summarise everything that the AI needs to know about herself to generate a response.
- * @returns {string} The response is a string that the openAI engine generated. 
+ * @returns {String} The response is a String that the openAI engine generated. 
  * It is outputted as a reply to the user who posed the prompt.
  */
 

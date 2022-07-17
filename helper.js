@@ -3,7 +3,7 @@ const VERBOSE = process.env.VERBOSE === 'true' ? true : false;
 /**
  * Takes a number between 0 and 1 and returns if Math.random() is less than number
  * @param {number} chance between 0 and 1 
- * @returns {boolean}
+ * @returns {Boolean}
  */
 
 const getRandom = (chance) => {
@@ -14,9 +14,9 @@ const getRandom = (chance) => {
 
 /**
  * Function returns true if the message contains a mention
- * @param {string} message a string containing the message
+ * @param {String} message a String containing the message
  * @param {object} client a discord.js client
- * @returns {boolean}
+ * @returns {Boolean}
  */
 
 
@@ -28,9 +28,9 @@ const replyMention = (message, client) => {
 }
 
 /**Function returns true if the message was sent in a whitelisted channel
- * @param {string} message the message string
- * @param {array} whitelist an array of channel ids 
- * @returns {boolean}
+ * @param {String} message the message String
+ * @param {Array} whitelist an Array of channel ids 
+ * @returns {Boolean}
  */
 
 const isChannelWhitelisted = (message, whitelist) => {
@@ -40,9 +40,9 @@ const isChannelWhitelisted = (message, whitelist) => {
 }
 
 /**Function returns true if the message was sent in a blacklisted channel
- * @param {string} message the message string
- * @param {array} blacklist an array of blacklisted channel ids 
- * @returns {boolean} boolean value
+ * @param {String} message the message String
+ * @param {Array} blacklist an Array of blacklisted channel ids 
+ * @returns {Boolean} Boolean value
  */
 
 const isChannelBlacklisted = (message, blacklist) => {
@@ -52,9 +52,9 @@ const isChannelBlacklisted = (message, blacklist) => {
 /**
  * Function that cleans the text and adds punctuation (a period)
  * Step two consists of cleaning the text and getting rid of discord names, emojis and unnecessary whitespaces.
- * @param {string} text the given text to clean or modify
- * @param {boolean} completionMode set to true if you don't want to add random punctuation at the end of the text 
- * @returns {string} the cleaned and/or modified text
+ * @param {String} text the given text to clean or modify
+ * @param {Boolean} completionMode set to true if you don't want to add random punctuation at the end of the text 
+ * @returns {String} the cleaned and/or modified text
  */
 
 const cleanText = (text, completionMode) => {
@@ -88,8 +88,8 @@ const cleanText = (text, completionMode) => {
  * Function that cleanses the output of a typical openAI response
  * Things that get cleaned up: 
  * Newlines, whitespaces, punctuation at the start and anything that is concluded by a colon
- * @param {string} text input text to clean
- * @returns {string} cleaned text
+ * @param {String} text input text to clean
+ * @returns {String} cleaned text
  */
 const cleanResultText = (text) => {
   return (
