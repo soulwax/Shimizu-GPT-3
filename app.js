@@ -23,6 +23,8 @@ const { getPrompt } = require('./ai.js')
 
 //#region mongoose
 const db = require('./db.js')(mongoose, DB_CONNECTION_STRING)
+const Guild = require('./models/guildModel.js')(mongoose)
+const Conversation = require('./models/convoModel.js')(mongoose)
 //TODO: use database from here on
 //#endregion mongoose
 
@@ -96,14 +98,47 @@ const commands = [
 client.on(`ready`, () => {
   console.log(`Logged in as ${client.user.tag}!`)
   console.log(`\tVerbose Mode: ${VERBOSE}`)
-  if(VERBOSE) console.log(
-    `Myself:
+  if (VERBOSE)
+    console.log(
+      `Myself:
     \tID: ${myself.id}
     \tName: ${myself.name}
     \tPremise: ${myself.premise}
     \tDiscord Intents: ${myself.intents.join(', ')},
     \topenAI token: ${myself.key},`
-  )
+    )
+  const guilds = client.guilds.cache.map((guild) => guild.name)
+  const guildIDs = client.guilds.cache.map((guild) => guild.id)
+
+  // add guilds to database if they don't exist
+  for (let i = 0; i < guildIDs.length; i++) {
+    //if Guild already exists in database, skip
+    if (Guild.findOne({ id: guildIDs[i] })) continue
+    //if Guild doesn't exist in database, add it
+    const guildID = guildIDs[i]
+    const guildName = guilds[i]
+    const guildModel = new Guild({
+      id: guildID,
+      name: guildName,
+      premise: `${myself.premise}`,
+      tokens: myself.tokens,
+      completionMode: completionMode,
+      chanceToRespond: chanceToRespond
+    })
+    guildModel.save().then((data) => {
+      if (VERBOSE) console.log(`Added guild ${guildName} to database.`)
+    })
+  }
+
+  // If Guild doesn't exist anymore, remove it from database
+  Guild.find({}).then((data) => {
+    for (let i = 0; i < data.length; i++) {
+      if (guildIDs.includes(data[i].id)) continue
+      data[i].remove().then((data) => {
+        if (VERBOSE) console.log(`Removed guild ${data.name} from database.`)
+      })
+    }
+  })
 })
 //#endregion
 
