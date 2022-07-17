@@ -57,8 +57,9 @@
   
   ## License
   
-  Boost Software License 1.0
-  
+  Copyright (c) 2022 Soulwax. All rights reserved.
+  This code is licensed under the MIT license.
+
   ---
   
   ## Questions?
