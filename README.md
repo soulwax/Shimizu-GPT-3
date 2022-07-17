@@ -57,7 +57,7 @@
   
   ## License
   
-  Copyright (c) 2022 Soulwax. All rights reserved.
+  Copyright (c) 2022 soulwax @C.K. All rights reserved.
   This code is licensed under the MIT license.
 
   ---
