@@ -68,6 +68,6 @@
   For any questions, please contact me with the information below:
  
   GitHub: [@soulwax](https://api.github.com/users/soulwax)
-  Discord: [Soulwax#9204](https://discord.gg/)
+  Discord: [Soulwax#5358](https://discord.gg/)
   Discord Server: [@Shimizu's Lounge](https://discord.gg/YZydPfuMEm)
   
