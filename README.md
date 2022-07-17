@@ -69,5 +69,5 @@
  
   GitHub: [@soulwax](https://api.github.com/users/soulwax)
   Discord: [Soulwax#5358](https://discord.gg/)
-  Discord Server: [@Shimizu's Lounge](https://discord.gg/YZydPfuMEm)
+  Discord Server: [@madtec.org discord](https://discord.gg/bjWkUsDchk)
   
