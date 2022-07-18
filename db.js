@@ -17,8 +17,8 @@ const syncGuildsWithDB = (client, myself) => {
       tokens: myself.tokens,
       completionMode: myself.options.completionMode,
       chanceToRespond: myself.options.chanceToRespond,
-      whitelistedChannels: myself.options.whitelistedChannels,
-      blacklistedChannels: myself.options.blacklistedChannels
+      whitelistedChannels: myself.whiteList,
+      blacklistedChannels: myself.blackList
     })
     Guild.findOne({ guildID: guildID }, (err, guild) => {
       if (err) {
