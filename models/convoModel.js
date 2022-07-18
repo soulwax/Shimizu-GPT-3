@@ -6,11 +6,11 @@
 module.exports = (mongoose) => {
   const conversationSchema = new mongoose.Schema({
     type: String,
-    serverId: Number,
+    guildID: Number,
     conversations: [
       {
         conversationID: Number,
-        userId: Number,
+        userID: Number,
         userName: String,
         messages: [
           {
