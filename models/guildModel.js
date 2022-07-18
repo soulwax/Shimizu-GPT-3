@@ -5,12 +5,14 @@
  */
 module.exports = (mongoose) => {
   const guildSchema = new mongoose.Schema({
-    id: String,
-    name: String,
+    guildID: String,
+    guildName: String,
     premise: String,
     tokens: Number,
     completionMode: Boolean,
-    chanceToRespond: Number
+    chanceToRespond: Number,
+    whitelistedChannels: [String],
+    blacklistedChannels: [String]
   })
   return mongoose.model('Guild', guildSchema)
 }
