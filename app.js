@@ -18,14 +18,17 @@ const rest = new REST({ version: `9` }).setToken(TOKEN)
 //#region custom requires
 const { getRandom, replyMention, isChannelWhitelisted, isChannelBlacklisted, cleanText } = require('./helper.js')
 const { getPrompt } = require('./ai.js')
+const { syncGuildsWithDB } = require('./db.js')
 //#endregion custom requires
 //#endregion requires
 
 //#region mongoose
-const db = require('./db.js')(mongoose, DB_CONNECTION_STRING)
-const Guild = require('./models/guildModel.js')(mongoose)
-const Conversation = require('./models/convoModel.js')(mongoose)
-//TODO: use database from here on
+mongoose.connect(DB_CONNECTION_STRING, { useNewUrlParser: true })
+const db = mongoose.connection
+db.on(`error`, console.error.bind(console, `connection error:`))
+db.once(`open`, () => {
+  console.log(`Connected to MongoDB`)
+})
 //#endregion mongoose
 
 //#region myself
@@ -36,15 +39,15 @@ const myself = {
   intents: process.env.MY_INTENTS.split(','),
   key: process.env.OPENAI_API_KEY,
   verbose: process.env.VERBOSE,
-  tokens: parseInt(process.env.MY_MAX_TOKENS)
+  tokens: parseInt(process.env.MY_MAX_TOKENS),
+  options: {
+    completionMode: false,
+    chanceToRespond: 0.05
+  },
+  whiteList: WHITELIST,
+  blackList: BLACKLIST 
 }
 //#endregion myself
-
-//#region options
-// TODO: options valid for a given guild
-let chanceToRespond = 0.05
-let completionMode = false
-//#endregion options
 
 //#region client
 const client = new Client({
@@ -97,48 +100,13 @@ const commands = [
 //#region ready event
 client.on(`ready`, () => {
   console.log(`Logged in as ${client.user.tag}!`)
+  console.log(
+    `${myself.name} has started, with ${client.users.size} users, in ${client.channels.size} channels of ${client.guilds.size} guilds.`
+  )
   console.log(`\tVerbose Mode: ${VERBOSE}`)
-  if (VERBOSE)
-    console.log(
-      `Myself:
-    \tID: ${myself.id}
-    \tName: ${myself.name}
-    \tPremise: ${myself.premise}
-    \tDiscord Intents: ${myself.intents.join(', ')},
-    \topenAI token: ${myself.key},`
-    )
-  const guilds = client.guilds.cache.map((guild) => guild.name)
-  const guildIDs = client.guilds.cache.map((guild) => guild.id)
-
-  // add guilds to database if they don't exist
-  for (let i = 0; i < guildIDs.length; i++) {
-    //if Guild already exists in database, skip
-    if (Guild.findOne({ id: guildIDs[i] })) continue
-    //if Guild doesn't exist in database, add it
-    const guildID = guildIDs[i]
-    const guildName = guilds[i]
-    const guildModel = new Guild({
-      id: guildID,
-      name: guildName,
-      premise: `${myself.premise}`,
-      tokens: myself.tokens,
-      completionMode: completionMode,
-      chanceToRespond: chanceToRespond
-    })
-    guildModel.save().then((data) => {
-      if (VERBOSE) console.log(`Added guild ${guildName} to database.`)
-    })
-  }
-
-  // If Guild doesn't exist anymore, remove it from database
-  Guild.find({}).then((data) => {
-    for (let i = 0; i < data.length; i++) {
-      if (guildIDs.includes(data[i].id)) continue
-      data[i].remove().then((data) => {
-        if (VERBOSE) console.log(`Removed guild ${data.name} from database.`)
-      })
-    }
-  })
+  //#region refresh guilds
+  syncGuildsWithDB(client, myself)
+  //#endregion refresh guilds
 })
 //#endregion
 
@@ -149,9 +117,12 @@ client.on('interactionCreate', async (interaction) => {
     // Report current status on variables
     const embed = new MessageEmbed()
       .setTitle(`Current status on variables`)
-      .setDescription(`Chance to respond overall at: ${chanceToRespond * 100}%\nCompletion mode: ${completionMode}`)
+      .setDescription(
+        `Chance to respond overall at: ${myself.options.chanceToRespond * 100}%\nCompletion mode: ${
+          myself.options.completionMode
+        }`
+      )
       .setColor(`#abff33`)
-      .setFooter(new EmbedFooterData() | null)
     await interaction.reply({ embeds: [embed] })
   }
 })
@@ -186,7 +157,7 @@ client.on('interactionCreate', async (interaction) => {
   if (!interaction.isCommand()) return
   if (interaction.commandName === `speak`) {
     // Set the chance to respond to 5%
-    chanceToRespond = 0.05
+    myself.options.chanceToRespond = 0.05
     const embed = new MessageEmbed()
       .setTitle(`Thank you! I will try to not speak too much.`)
       .setDescription(`Chance to respond set to 5% although I long to dream of speaking more to you.`)
@@ -200,7 +171,7 @@ client.on('interactionCreate', async (interaction) => {
   if (!interaction.isCommand()) return
   if (interaction.commandName === `shutup`) {
     // Set the chance to respond to 0%
-    chanceToRespond = 0
+    myself.options.chanceToRespond = 0
     const embed = new MessageEmbed()
       .setTitle(`Chance to respond set to 0%`)
       .setDescription(`Chance to respond set to 0%`)
@@ -214,10 +185,10 @@ client.on('interactionCreate', async (interaction) => {
   if (!interaction.isCommand()) return
   if (interaction.commandName === `speakup`) {
     // Increase the chance to respond by 5%
-    chanceToRespond += 0.05
+    myself.options.chanceToRespond += 0.05
     const embed = new MessageEmbed()
       .setTitle(`Chance to respond increased by 5%`)
-      .setDescription(`Chance to respond overall at: ${chanceToRespond * 100}%`)
+      .setDescription(`Chance to respond overall at: ${myself.options.chanceToRespond * 100}%`)
       .setColor(`#11ffab`)
     await interaction.reply({ embeds: [embed] })
   }
@@ -228,10 +199,10 @@ client.on('interactionCreate', async (interaction) => {
   if (!interaction.isCommand()) return
   if (interaction.commandName === `speakdown`) {
     // Decrease the chance to respond by 5%
-    chanceToRespond -= 0.05
+    myself.options.chanceToRespond -= 0.05
     const embed = new MessageEmbed()
       .setTitle(`Chance to respond decreased by 5%`)
-      .setDescription(`Chance to respond overall at: ${chanceToRespond * 100}%`)
+      .setDescription(`Chance to respond overall at: ${myself.options.chanceToRespond * 100}%`)
       .setColor(`#ab0011`)
     await interaction.reply({ embeds: [embed] })
   }
@@ -242,10 +213,10 @@ client.on('interactionCreate', async (interaction) => {
   if (!interaction.isCommand()) return
   if (interaction.commandName === `reset`) {
     // Reset the chance to respond to 5%
-    chanceToRespond = 0.05
+    myself.options.chanceToRespond = 0.05
     const embed = new MessageEmbed()
       .setTitle(`Chance to respond reset to 5%`)
-      .setDescription(`Chance to respond overall at: ${chanceToRespond * 100}%`)
+      .setDescription(`Chance to respond overall at: ${myself.options.chanceToRespond * 100}%`)
       .setColor(`#11ffab`)
     await interaction.reply({ embeds: [embed] })
   }
@@ -258,7 +229,11 @@ client.on('interactionCreate', async (interaction) => {
     // Report current status on variables
     const embed = new MessageEmbed()
       .setTitle(`Current status on variables`)
-      .setDescription(`Chance to respond overall at: ${chanceToRespond * 100}%\nCompletion mode: ${completionMode}`)
+      .setDescription(
+        `Chance to respond overall at: ${myself.options.chanceToRespond * 100}%\nCompletion mode: ${
+          myself.options.completionMode
+        }`
+      )
       .setColor(`#abff33`)
     await interaction.reply({ embeds: [embed] })
   }
@@ -269,10 +244,10 @@ client.on('interactionCreate', async (interaction) => {
   if (!interaction.isCommand()) return
   if (interaction.commandName === `togglecompletion`) {
     // Toggle completion mode
-    completionMode = !completionMode
+    myself.options.completionMode = !myself.options.completionMode
     const embed = new MessageEmbed()
       .setTitle(`Completion mode toggled`)
-      .setDescription(`Completion mode is now: ${completionMode}`)
+      .setDescription(`Completion mode is now: ${myself.options.completionMode}`)
       .setColor(`#23ff67`)
     await interaction.reply({ embeds: [embed] })
   }
@@ -284,7 +259,7 @@ client.on('interactionCreate', async (interaction) => {
   if (interaction.commandName === `setchance`) {
     // Set the chance to respond to a specific value
     const integer = interaction.options.getInteger('integer')
-    chanceToRespond = integer / 100
+    myself.options.chanceToRespond = integer / 100
     const embed = new MessageEmbed()
       .setTitle(`Chance to respond set to ${integer}%`)
       .setDescription(`Chance to respond overall at: ${integer}%`)
@@ -331,10 +306,10 @@ client.on('messageCreate', async (message) => {
   if (
     replyMention(message, client) ||
     isChannelWhitelisted(message, WHITELIST) ||
-    (getRandom(chanceToRespond) && !isChannelBlacklisted(message, BLACKLIST))
+    (getRandom(myself.options.chanceToRespond) && !isChannelBlacklisted(message, BLACKLIST))
   ) {
     // get rid of discord names and emojis
-    let cleanedText = cleanText(message.content, completionMode)
+    let cleanedText = cleanText(message.content, myself.options.completionMode)
     let cleanTextLength = cleanedText.length
     if (cleanTextLength <= 0) return
     message.channel.sendTyping()
