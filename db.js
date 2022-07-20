@@ -2,7 +2,7 @@ const mongoose = require('mongoose')
 const Guild = require('./models/guildModel.js')(mongoose)
 const Conversation = require('./models/convoModel.js')(mongoose)
 
-const syncGuildsWithDB = (client, myself) => {
+const syncGuildsWithDB = async (client, myself) => {
   const guilds = client.guilds.cache.map((guild) => guild.name)
   const guildIDs = client.guilds.cache.map((guild) => guild.id)
   console.log(`\tGuilds: ${guilds.join(', ')}`)
@@ -53,4 +53,78 @@ const syncGuildsWithDB = (client, myself) => {
   })
 }
 
-module.exports = { syncGuildsWithDB }
+// Function that gets the guild from the database and returns it
+// TODO: PROTOTYPE: USE AT YOUR OWN RISK!
+const getGuild = async (client, guildID) => {
+  Guild.findOne({ guildID: guildID }, (err, guild) => {
+    if (err) {
+      console.error(err)
+    } else if (!guild) {
+      console.log(`\t${guildID} not found in the database.`)
+    } else {
+      console.log(`\t${guild.guildName} found in the database.`)
+      return guild
+    }
+  })
+}
+
+// Function that finds the conversation and guild from the database and returns the last 10 objects in the conversation
+// TODO: PROTOTYPE: USE AT YOUR OWN RISK!
+const getConversation = async (client, guildID, channelID) => {
+  Guild.findOne({ guildID: guildID }, (err, guild) => {
+    if (err) {
+      console.error(err)
+    } else if (!guild) {
+      console.log(`\t${guildID} not found in the database.`)
+    } else {
+      console.log(`\t${guild.guildName} found in the database.`)
+      Conversation.find({ guildID: guildID, channelID: channelID }, (err, convo) => {
+        if (err) {
+          console.error(err)
+        } else if (!convo) {
+          console.log(`\t${channelID} not found in the database.`)
+        } else {
+          console.log(`\t${channelID} found in the database.`)
+          return convo
+        }
+      })
+        .sort({ _id: -1 })
+        .limit(10)
+    }
+  })
+}
+
+// Set the chance to reply for a specified guild
+// TODO: PROTOTYPE: USE AT YOUR OWN RISK!
+const setChanceForGuild = async (client, guildID, chance) => {
+  getGuild(client, guildID).then((guild) => {
+    guild.chanceToRespond = chance
+    guild.save()
+  })
+}
+
+// Set the completion mode for a specified guild
+// TODO: PROTOTYPE: USE AT YOUR OWN RISK!
+const setCompletionModeForGuild = async (client, guildID, mode) => {
+  getGuild(client, guildID).then((guild) => {
+    guild.completionMode = mode
+    guild.save()
+  })
+}
+
+// Get the chance to reply for a specified guild
+const getChanceForGuild = async (client, guildID) => {
+  return getGuild(client, guildID).then((guild) => {
+    return guild.chanceToRespond
+  })
+}
+
+// Get the completion mode for a specified guild
+const getCompletionModeForGuild = async (client, guildID) => {
+  return getGuild(client, guildID).then((guild) => {
+    return guild.completionMode
+  })
+}
+
+
+module.exports = { syncGuildsWithDB, getGuild, getConversation, setChanceForGuild, setCompletionModeForGuild, getChanceForGuild, getCompletionModeForGuild }
