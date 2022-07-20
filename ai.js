@@ -18,16 +18,18 @@ const got = require('got')
  * It is outputted as a reply to the user who posed the prompt.
  */
 
-const getPrompt = async (prompt, myself) => {
+const getPrompt = async (prompt, myself, origin) => {
   const url = 'https://api.openai.com/v1/engines/davinci/completions'
+  const fullPrompt = `${myself.name} ${myself.premise}.\n\n${origin}: ${prompt}\n${myself.name}: `
+  if(myself.verbose) console.log(`Full Prompt Sending...:\n\t ${fullPrompt}`)
   const params = {
-    prompt: `${myself.name} ${myself.premise}\n\n${prompt}\n${myself.name}: `, /*history aus der datenbank*/
+    prompt: fullPrompt /*history aus der datenbank*/,
     temperature: 0.7,
     max_tokens: parseInt(myself.tokens),
     top_p: 0.3,
     frequency_penalty: 0.5,
     presence_penalty: 0.0,
-    stop: 'Human:'
+    stop: `${origin}:`
   }
 
   const headers = {

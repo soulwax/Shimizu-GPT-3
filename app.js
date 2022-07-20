@@ -18,7 +18,15 @@ const rest = new REST({ version: `9` }).setToken(TOKEN)
 //#region custom requires
 const { getRandom, replyMention, isChannelWhitelisted, isChannelBlacklisted, cleanText } = require('./helper.js')
 const { getPrompt } = require('./ai.js')
-const { syncGuildsWithDB } = require('./db.js')
+const {
+  syncGuildsWithDB,
+  getGuild,
+  getConversation,
+  setChanceForGuild,
+  setCompletionModeForGuild,
+  getChanceForGuild,
+  getCompletionModeForGuild
+} = require('./db.js')
 //#endregion custom requires
 //#endregion requires
 
@@ -45,7 +53,7 @@ const myselfDefault = {
     chanceToRespond: 0.05
   },
   whiteList: WHITELIST,
-  blackList: BLACKLIST 
+  blackList: BLACKLIST
 }
 //#endregion myself
 
@@ -259,7 +267,8 @@ client.on('interactionCreate', async (interaction) => {
   if (interaction.commandName === `setchance`) {
     // Set the chance to respond to a specific value
     const integer = interaction.options.getInteger('integer')
-    myselfDefault.options.chanceToRespond = integer / 100
+    //myselfDefault.options.chanceToRespond = integer / 100
+    
     const embed = new MessageEmbed()
       .setTitle(`Chance to respond set to ${integer}%`)
       .setDescription(`Chance to respond overall at: ${integer}%`)
@@ -313,16 +322,15 @@ client.on('messageCreate', async (message) => {
     let cleanTextLength = cleanedText.length
     if (cleanTextLength <= 0) return
     message.channel.sendTyping()
-    // TODO: replace "Human:" with the username of the author
+    let prompt = cleanedText
 
-    let prompt = `Human: ${cleanedText}`
     if (VERBOSE) {
       console.log(`Original message content created at ${message.createdAt}:`)
       console.log(`${message.author.username}: ${message.content}`) // original message
       console.log(`After trimming: ${prompt}, clean text: ${cleanedText} length: ${cleanedText.length}`) // trimmed message
     }
 
-    let response = await getPrompt(prompt, myselfDefault)
+    let response = await getPrompt(prompt, myselfDefault, message.author.username)
     if (response === undefined) {
       response = 'I am sorry, I do not understand.'
     } else if (response.length > 2000) {
