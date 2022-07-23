@@ -330,7 +330,7 @@ client.on('messageCreate', async (message) => {
       console.log(`After trimming: ${prompt}, clean text: ${cleanedText} length: ${cleanedText.length}`) // trimmed message
     }
 
-    let response = await getPrompt(prompt, myselfDefault, message.author.username)
+    let response = await getPrompt(prompt, myselfDefault, 'Human')
     if (response === undefined) {
       response = 'I am sorry, I do not understand.'
     } else if (response.length > 2000) {

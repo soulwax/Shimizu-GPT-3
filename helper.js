@@ -101,7 +101,7 @@ const cleanResultText = (text) => {
       //clean up any whitespace at the beginning of the sentence and remove it
       .replace(/^\s+/, '')
       //clean up anything until ':'
-      .replace(/^.+?(?=:)/, '')
+      .replace(/.+?(?=:)/, '')
       // return text
       .trim()
   )

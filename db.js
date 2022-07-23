@@ -1,6 +1,6 @@
 const mongoose = require('mongoose')
-const Guild = require('./models/guildModel.js')(mongoose)
-const Conversation = require('./models/convoModel.js')(mongoose)
+const Guild = require('./models/guild.js')(mongoose)
+const Conversation = require('./models/conversation.js')(mongoose)
 
 const syncGuildsWithDB = async (client, myself) => {
   const guilds = client.guilds.cache.map((guild) => guild.name)
