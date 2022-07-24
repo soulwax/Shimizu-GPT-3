@@ -1,3 +1,15 @@
+/**
+ * Application lifecycle:
+ * - initialize environment variables and required modules
+ * - - among them being two schemas for guilds and conversations
+ * - connect to mongoDB database using a raw connection string
+ * - initialize the myselfDefault object
+ * - initialize the commands we want to use
+ * - initialize the discord client and event loop
+ * - define event handlers for the client
+ * - connect to discord and go online listening for events and slash commands
+ */
+
 //#region enviroment variables
 require('dotenv').config({ path: __dirname + '/.env' })
 const TOKEN = process.env.DISCORD_TOKEN
@@ -93,7 +105,6 @@ const commands = [
     .setDescription('Toggles the raw mode. This mode will disable the initial prompt and send the raw text instead.')
 ]
 //#endregion commands
-
 
 //#region REFRESH
 ;(async () => {
@@ -357,33 +368,44 @@ client.on('interactionCreate', async (interaction) => {
 //#region main message event
 client.on('messageCreate', async (message) => {
   if (message.author.bot) return
-
+  const rawMessage = message.content
+  // The bot will reply under the following conditions:
+  // case 1: the bot is mentioned
+  // case 2: the message was received in a whitelisted channel
+  // case 3: the message received was not in a blacklisted channel and
+  //         the random chance to respond was successful
+  // TODO: database query to get a history of messages instead of just the last one
   if (
     replyMention(message, client) ||
     isChannelWhitelisted(message, WHITELIST) ||
     (getRandom(myselfDefault.options.chanceToRespond) && !isChannelBlacklisted(message, BLACKLIST))
   ) {
+    // to work with the message, we need to clean it from discord's markdown
     // get rid of discord names and emojis
-    let cleanedText = cleanText(message.content, myselfDefault.options.completionMode)
-    let cleanTextLength = cleanedText.length
-    if (cleanTextLength <= 0) return
-    message.channel.sendTyping()
-    let prompt = cleanedText
+    // ? is this really necessary?
+    const cleanedText = cleanText(rawMessage, myselfDefault.options.completionMode)
+    if (cleanedText.length <= 0) return // if the cleaned text is empty, don't do anything
+  
+    message.channel.sendTyping() // otherwise, start typing
 
     if (VERBOSE) {
       console.log(`Original message content created at ${message.createdAt}:`)
-      console.log(`${message.author.username}: ${message.content}`) // original message
-      console.log(`After trimming: ${prompt}, clean text: ${cleanedText} length: ${cleanedText.length}`) // trimmed message
+      console.log(`${message.author.username}: ${rawMessage}`) // original message
+      console.log(`Clean text: ${cleanedText} length: ${cleanedText.length}`) // trimmed message
     }
 
-    let response = await getPrompt(prompt, myselfDefault, 'Human')
+    let response = await getPrompt(cleanedText, myselfDefault, 'Human')
+    
     if (response === undefined) {
+      // This case should technically never trigger
+      // unless we send a faulty prompt
       response = 'I am sorry, I do not understand.'
     } else if (response.length > 2000) {
       //shorten response if it is too long
+      //the discord API has a limit of 2000 characters
       response = response.substring(0, 2000)
     }
-    //check if response is an empty string
+    // don't do anything if the response is empty or undefined
     if (response.length == '' || response.length == undefined) return
     // reply with the prompt
     await message.reply(response)
