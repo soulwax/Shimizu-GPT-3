@@ -48,6 +48,7 @@ const myselfDefault = {
   key: process.env.OPENAI_API_KEY,
   verbose: process.env.VERBOSE,
   tokens: parseInt(process.env.MY_MAX_TOKENS),
+  raw: process.env.MYSELF_RAW === 'true' || false,
   options: {
     completionMode: false,
     chanceToRespond: 0.05
@@ -75,6 +76,7 @@ const commands = [
   new SlashCommandBuilder().setName('reset').setDescription('Resets the chance to respond to 5%.'),
   new SlashCommandBuilder().setName('status').setDescription('Reports current status on variables.'),
   new SlashCommandBuilder().setName('togglecompletion').setDescription('Toggles the completion mode.'),
+  new SlashCommandBuilder().setName('togglerawmode').setDescription('Toggles the raw mode. This mode will disable the initial prompt and send the raw text instead.'),
   new SlashCommandBuilder()
     .setName('setchance')
     .setDescription('Sets the chance to respond to a specific value.')
@@ -296,7 +298,8 @@ client.on('interactionCreate', async (interaction) => {
       **/speakdown** - Decreases the chance to respond by 5%.
       **/speakreset** - Resets the chance to respond to 5%.
       **/setchance** - Sets the chance to respond to a certain percentage.
-      **/toggleCompletion** - Toggles the completion mode.
+      **/togglecompletion** - Toggles the completion mode.
+      **/togglerawmode** - Toggles the raw mode. The prompt will be sent as is.
       **Written by**: soulwax#9204
       **Github:**: https://github.com/soulwax/Shimizu-GPT-3
       `
@@ -307,6 +310,20 @@ client.on('interactionCreate', async (interaction) => {
   }
 })
 //#endregion
+
+//#region raw mode
+client.on('interactionCreate', async (interaction) => {
+  if (!interaction.isCommand()) return
+  if (interaction.commandName === `togglerawmode`) {
+    // Toggle raw mode
+    myselfDefault.options.rawMode = !myselfDefault.options.rawMode
+    const embed = new MessageEmbed()
+      .setTitle(`Raw mode toggled`)
+      .setDescription(`Raw mode is now: ${myselfDefault.options.rawMode}`)
+      .setColor(`#23ff67`)
+    await interaction.reply({ embeds: [embed] })
+  }
+})
 
 //#region message event
 client.on('messageCreate', async (message) => {

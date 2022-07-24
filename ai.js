@@ -5,13 +5,13 @@ const got = require('got')
 // Sarcastic bot example:
 // prompt: """Marv is a chatbot that reluctantly answers questions with sarcastic responses:\n\n
 //            You: How many pounds are in a kilogram?\n
-//            Marv: This again? There are 2.2 pounds in a kilogram. 
+//            Marv: This again? There are 2.2 pounds in a kilogram.
 //                  Please make a note of this.\n
 //            You: What does HTML stand for?\n
-//            Marv: Was Google too busy? Hypertext Markup Language. 
+//            Marv: Was Google too busy? Hypertext Markup Language.
 //                  The T is for try to ask better questions in the future.\n
 //            You: When did the first airplane fly?\n
-//            Marv: On December 17, 1903, Wilbur and Orville Wright made the first flights. 
+//            Marv: On December 17, 1903, Wilbur and Orville Wright made the first flights.
 //                  I wish they’d come and take me away.\n
 //            You: What is the meaning of life?\n
 //            Marv: I’m not sure. I’ll ask my friend Google.\n
@@ -34,8 +34,10 @@ const got = require('got')
 
 const getPrompt = async (prompt, myself, callerName) => {
   const url = 'https://api.openai.com/v1/engines/davinci/completions'
-const fullPrompt = `${myself.name} ${myself.premise}\n\n${callerName}: Hello Shimizu!\nShimizu: Hello! What an awesome day!\n${callerName}: ${prompt}\n${myself.name}:`
+  let fullPrompt = `${myself.name} ${myself.premise}\n\n${callerName}: Hello Shimizu!\nShimizu: Hello! What an awesome day!\n${callerName}: ${prompt}\n${myself.name}:`
   if (myself.verbose) console.log(`Full Prompt Sending...:\n\t ${fullPrompt}`)
+  if (myself.raw) fullPrompt = prompt
+  
   const params = {
     prompt: fullPrompt /*history aus der datenbank*/,
     temperature: 0.7,
@@ -54,7 +56,6 @@ const fullPrompt = `${myself.name} ${myself.premise}\n\n${callerName}: Hello Shi
     const response = await got.post(url, { json: params, headers: headers }).json()
     output = `${response.choices[0].text}`
     if (myself.verbose) {
-      
       console.log(` ####### RES OBJECT ####### \n\t ${JSON.stringify(response, null, 2)}`)
       console.log(`### END OBJECT ###`)
       console.log(` ####### Response ####### \n ${output}`)
@@ -69,7 +70,6 @@ const fullPrompt = `${myself.name} ${myself.premise}\n\n${callerName}: Hello Shi
     console.log(err)
   }
 }
-
 
 /**
  * EXPERIMENTAL CACHING (GOES INTO DATABASE SOON)
@@ -97,6 +97,5 @@ const getResponseCached = async (prompt, myself, callerName) => {
   }
   return response
 }
-
 
 module.exports = { getPrompt }
