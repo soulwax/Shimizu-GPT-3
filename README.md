@@ -18,10 +18,23 @@
   A discord bot using GPT-3 for different purposes.
 
   ## Table of Contents
+  * [Application Lifecycle](#application-lifecycle)
   * [Installation](#installation)
   * [Usage](#usage)
   * [Contributing](#contributing)
   * [License](#license)
+
+  ## Application Lifecycle
+
+  - initialize environment variables and required modules
+    - among them being two schemas for guilds and conversations
+  - connect to mongoDB database using a raw connection string
+  - initialize the myselfDefault object
+  - initialize the commands we want to use
+  - initialize the discord client and event loop
+  - define event handlers for the client
+  - connect to discord and go online listening for events and slash commands
+  
   
   ## Installation
   
