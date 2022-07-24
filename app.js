@@ -48,10 +48,10 @@ const myselfDefault = {
   key: process.env.OPENAI_API_KEY,
   verbose: process.env.VERBOSE,
   tokens: parseInt(process.env.MY_MAX_TOKENS),
-  raw: process.env.MYSELF_RAW === 'true' || false,
   options: {
     completionMode: false,
-    chanceToRespond: 0.05
+    chanceToRespond: 0.05,
+    raw: process.env.MYSELF_RAW === 'true' || false
   },
   whiteList: WHITELIST,
   blackList: BLACKLIST
@@ -240,9 +240,11 @@ client.on('interactionCreate', async (interaction) => {
     const embed = new MessageEmbed()
       .setTitle(`Current status on variables`)
       .setDescription(
-        `Chance to respond overall at: ${myselfDefault.options.chanceToRespond * 100}%\nCompletion mode: ${
+        `Chance to respond overall at: ${myselfDefault.options.chanceToRespond * 100}%\n
+         Completion mode: ${
           myselfDefault.options.completionMode
-        }`
+        }\n
+         Raw mode: ${myselfDefault.options.rawMode}`
       )
       .setColor(`#abff33`)
     await interaction.reply({ embeds: [embed] })

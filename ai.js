@@ -35,8 +35,10 @@ const got = require('got')
 const getPrompt = async (prompt, myself, callerName) => {
   const url = 'https://api.openai.com/v1/engines/davinci/completions'
   let fullPrompt = `${myself.name} ${myself.premise}\n\n${callerName}: Hello Shimizu!\nShimizu: Hello! What an awesome day!\n${callerName}: ${prompt}\n${myself.name}:`
-  if (myself.verbose) console.log(`Full Prompt Sending...:\n\t ${fullPrompt}`)
-  if (myself.raw) fullPrompt = prompt
+  if (myself.verbose && !myself.options.raw) console.log(`Full Prompt Sending...:\n\t ${fullPrompt}`)
+  if (myself.options.raw) {
+    if(myself.verbose) console.log(`Raw Prompt Sending...:\n\t ${prompt}`)
+  }
   
   const params = {
     prompt: fullPrompt /*history aus der datenbank*/,
