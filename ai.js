@@ -33,28 +33,29 @@ const got = require('got')
  */
 
 const getPrompt = async (prompt, myself, callerName) => {
+  const rawMode = myself.options.rawMode
   const url = 'https://api.openai.com/v1/engines/davinci/completions'
   const intro = `${myself.name} ${myself.premise}.`
-  const primer = `${callerName}: Hello ${myself.name}!\n${myself.name}: Hello! What an awesome day!`
+  //const primer = `${callerName}: Hello ${myself.name}!\n${myself.name}: Hello! What an awesome day!`
   const message = `${callerName}: ${prompt}`
   let fullPrompt = ''
-  if(!myself.options.raw) {
+  if (!rawMode) {
     // The full prompt has the following structure as an example:
     // intro:  "Shimizu is a chatbot who does things."
     // primer: "Human: Hello Shimizu!"
     //         "Shimizu: Hello! What an awesome day!"
     // message: "You: What is your name?"
     // "Shimizu: " ... AI generated response!
-    fullPrompt = `${intro}\n\n${primer}\n${message}\n${myself.name}:`
-  } else if(myself.options.raw) {
+    fullPrompt = `${intro}\n\n${message}\n${myself.name}:`
+  } else if (rawMode) {
     fullPrompt = prompt
   }
   if (myself.verbose) {
-    console.log(`Sending ${myself.options.raw ? 'RAW': 'full'} prompt...\n${fullPrompt}`);
+    console.log(`Sending ${rawMode ? 'RAW' : 'full'} prompt...\n${fullPrompt}`)
   }
   
   const params = {
-    prompt: fullPrompt /*history aus der datenbank*/,
+    prompt: fullPrompt,
     temperature: 0.7,
     max_tokens: parseInt(myself.tokens),
     top_p: 0.4,
@@ -70,15 +71,15 @@ const getPrompt = async (prompt, myself, callerName) => {
   try {
     const response = await got.post(url, { json: params, headers: headers }).json()
     output = `${response.choices[0].text}`
-    if (myself.verbose) {
-      console.log(` ####### RES OBJECT ####### \n\t ${JSON.stringify(response, null, 2)}`)
-      console.log(`### END OBJECT ###`)
-      console.log(` ####### Response ####### \n ${output}`)
-      console.log(` ####### End Response ####### \n`)
-    }
+    // if (myself.verbose) {
+    //   console.log(` ####### RES OBJECT ####### \n\t ${JSON.stringify(response, null, 2)}`)
+    //   console.log(`### END OBJECT ###`)
+    //   console.log(` ####### Response ####### \n ${output}`)
+    //   console.log(` ####### End Response ####### \n`)
+    // }
     const cleanedResultText = cleanResultText(output)
     if (myself.verbose) {
-      console.log(`Cleaned Response\n: ${cleanedResultText}`)
+      console.log(`Cleaned Response:\n${cleanedResultText}`)
     }
     return cleanedResultText
   } catch (err) {

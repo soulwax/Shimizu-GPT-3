@@ -64,7 +64,7 @@ const myselfDefault = {
   options: {
     completionMode: false,
     chanceToRespond: 0.05,
-    raw: process.env.MYSELF_RAW === 'true' || false
+    rawMode: process.env.MYSELF_RAW === 'true' ? true : false,
   },
   whiteList: WHITELIST,
   blackList: BLACKLIST
@@ -135,26 +135,9 @@ client.on(`ready`, () => {
 })
 //#endregion ready event
 
+//#region slash command events
 //#region experiment command
 //TODO: this is a placeholder command for things to come
-client.on('interactionCreate', async (interaction) => {
-  if (!interaction.isCommand()) return
-  if (interaction.commandName === `status`) {
-    // Report current status on variables
-    const embed = new MessageEmbed()
-      .setTitle(`Current status on variables`)
-      .setDescription(
-        `Chance to respond overall at: ${myselfDefault.options.chanceToRespond * 100}%\nCompletion mode: ${
-          myselfDefault.options.completionMode
-        }`
-      )
-      .setColor(`#abff33`)
-    await interaction.reply({ embeds: [embed] })
-  }
-})
-//#endregion experiment command
-
-//#region slash command events
 client.on('interactionCreate', async (interaction) => {
   if (!interaction.isCommand()) return
   if (interaction.commandName === `experiment`) {
@@ -166,7 +149,7 @@ client.on('interactionCreate', async (interaction) => {
     await interaction.reply({ embeds: [embed] })
   }
 })
-//#endregion slash command events
+//#endregion experiment command
 
 //#region ping command
 client.on('interactionCreate', async (interaction) => {
@@ -364,10 +347,12 @@ client.on('interactionCreate', async (interaction) => {
   }
 })
 //#endregion command raw mode
+//#endregion slash command events
 
 //#region main message event
 client.on('messageCreate', async (message) => {
   if (message.author.bot) return
+  const author = message.author.username
   const rawMessage = message.content
   // The bot will reply under the following conditions:
   // case 1: the bot is mentioned
@@ -385,7 +370,7 @@ client.on('messageCreate', async (message) => {
     // ? is this really necessary?
     const cleanedText = cleanText(rawMessage, myselfDefault.options.completionMode)
     if (cleanedText.length <= 0) return // if the cleaned text is empty, don't do anything
-  
+
     message.channel.sendTyping() // otherwise, start typing
 
     if (VERBOSE) {
@@ -394,8 +379,16 @@ client.on('messageCreate', async (message) => {
       console.log(`Clean text: ${cleanedText} length: ${cleanedText.length}`) // trimmed message
     }
 
-    let response = await getPrompt(cleanedText, myselfDefault, 'Human')
-    
+    // TODO: database query to get a history of messages instead of just the last one
+    // Get the last five messages in the channel in reverse order
+    const messageHistory = await message.channel.messages.fetch({ limit: 5, before: message.id })
+    // ? Experimental: build a sting of the last five messages in messageHistory
+    let messageHistoryString = ''
+    messageHistory.forEach((message) => {
+      messageHistoryString += `${message.author.username}: ${message.content}\n`
+    })
+    let response = await getPrompt(cleanedText, myselfDefault, author)
+
     if (response === undefined) {
       // This case should technically never trigger
       // unless we send a faulty prompt
@@ -405,6 +398,7 @@ client.on('messageCreate', async (message) => {
       //the discord API has a limit of 2000 characters
       response = response.substring(0, 2000)
     }
+
     // don't do anything if the response is empty or undefined
     if (response.length == '' || response.length == undefined) return
     // reply with the prompt
