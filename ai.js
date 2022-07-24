@@ -34,10 +34,23 @@ const got = require('got')
 
 const getPrompt = async (prompt, myself, callerName) => {
   const url = 'https://api.openai.com/v1/engines/davinci/completions'
-  let fullPrompt = `${myself.name} ${myself.premise}\n\n${callerName}: Hello Shimizu!\nShimizu: Hello! What an awesome day!\n${callerName}: ${prompt}\n${myself.name}:`
-  if (myself.verbose && !myself.options.raw) console.log(`Full Prompt Sending...:\n\t ${fullPrompt}`)
-  if (myself.options.raw) {
-    if(myself.verbose) console.log(`Raw Prompt Sending...:\n\t ${prompt}`)
+  const intro = `${myself.name} ${myself.premise}.`
+  const primer = `${callerName}: Hello ${myself.name}!\n${myself.name}: Hello! What an awesome day!`
+  const message = `${callerName}: ${prompt}`
+  let fullPrompt = ''
+  if(!myself.options.raw) {
+    // The full prompt has the following structure as an example:
+    // intro:  "Shimizu is a chatbot who does things."
+    // primer: "Human: Hello Shimizu!"
+    //         "Shimizu: Hello! What an awesome day!"
+    // message: "You: What is your name?"
+    // "Shimizu: " ... AI generated response!
+    fullPrompt = `${intro}\n\n${primer}\n${message}\n${myself.name}:`
+  } else if(myself.options.raw) {
+    fullPrompt = prompt
+  }
+  if (myself.verbose) {
+    console.log(`Sending ${myself.options.raw ? 'RAW': 'full'} prompt...\n${fullPrompt}`);
   }
   
   const params = {
