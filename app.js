@@ -18,6 +18,7 @@ const rest = new REST({ version: `9` }).setToken(TOKEN)
 //#region custom requires
 const { getRandom, replyMention, isChannelWhitelisted, isChannelBlacklisted, cleanText } = require('./helper.js')
 const { getPrompt } = require('./ai.js')
+// db requires
 const {
   syncGuildsWithDB,
   getGuild,
@@ -39,7 +40,7 @@ db.once(`open`, () => {
 })
 //#endregion mongoose
 
-//#region myself
+//#region myselfDefault
 const myselfDefault = {
   id: process.env.MY_ID,
   name: process.env.MY_NAME,
@@ -56,27 +57,25 @@ const myselfDefault = {
   whiteList: WHITELIST,
   blackList: BLACKLIST
 }
-//#endregion myself
+//#endregion myselfDefault
 
 //#region client
 const client = new Client({
   intents: myselfDefault.intents
 }).setMaxListeners(15)
-//#endregion
+//#endregion client
 
 //#region commands
-
 const commands = [
   new SlashCommandBuilder().setName(`experiment`).setDescription(`Start an experiment`),
+  new SlashCommandBuilder().setName('help').setDescription('Replies with a list of commands.'),
   new SlashCommandBuilder().setName('ping').setDescription('Replies with "pong" if the bot is online.'),
+  new SlashCommandBuilder().setName('reset').setDescription('Resets the chance to respond to 5%.'),
   new SlashCommandBuilder().setName('shutup').setDescription('Sets the random response rate to 0%'),
   new SlashCommandBuilder().setName('speak').setDescription('Sets the random response rate to 5%'),
   new SlashCommandBuilder().setName('speakup').setDescription('Increases the chance to respond by 5%.'),
   new SlashCommandBuilder().setName('speakdown').setDescription('Decreases the chance to respond by 5%.'),
-  new SlashCommandBuilder().setName('reset').setDescription('Resets the chance to respond to 5%.'),
   new SlashCommandBuilder().setName('status').setDescription('Reports current status on variables.'),
-  new SlashCommandBuilder().setName('togglecompletion').setDescription('Toggles the completion mode.'),
-  new SlashCommandBuilder().setName('togglerawmode').setDescription('Toggles the raw mode. This mode will disable the initial prompt and send the raw text instead.'),
   new SlashCommandBuilder()
     .setName('setchance')
     .setDescription('Sets the chance to respond to a specific value.')
@@ -88,9 +87,14 @@ const commands = [
         .setMinValue(0)
         .setMaxValue(100)
     }),
-  new SlashCommandBuilder().setName('help').setDescription('Replies with a list of commands.')
+  new SlashCommandBuilder().setName('togglecompletion').setDescription('Toggles the completion mode.'),
+  new SlashCommandBuilder()
+    .setName('togglerawmode')
+    .setDescription('Toggles the raw mode. This mode will disable the initial prompt and send the raw text instead.')
 ]
-//#endregion
+//#endregion commands
+
+
 //#region REFRESH
 ;(async () => {
   try {
@@ -105,7 +109,7 @@ const commands = [
     console.error(error)
   }
 })()
-//#endregion
+//#endregion REFRESH
 
 //#region ready event
 client.on(`ready`, () => {
@@ -118,9 +122,10 @@ client.on(`ready`, () => {
   syncGuildsWithDB(client, myselfDefault)
   //#endregion refresh guilds
 })
-//#endregion
+//#endregion ready event
 
 //#region experiment command
+//TODO: this is a placeholder command for things to come
 client.on('interactionCreate', async (interaction) => {
   if (!interaction.isCommand()) return
   if (interaction.commandName === `status`) {
@@ -138,7 +143,7 @@ client.on('interactionCreate', async (interaction) => {
 })
 //#endregion experiment command
 
-// #region slash command events
+//#region slash command events
 client.on('interactionCreate', async (interaction) => {
   if (!interaction.isCommand()) return
   if (interaction.commandName === `experiment`) {
@@ -150,7 +155,9 @@ client.on('interactionCreate', async (interaction) => {
     await interaction.reply({ embeds: [embed] })
   }
 })
+//#endregion slash command events
 
+//#region ping command
 client.on('interactionCreate', async (interaction) => {
   if (!interaction.isCommand()) return
   if (interaction.commandName === `ping`) {
@@ -161,7 +168,9 @@ client.on('interactionCreate', async (interaction) => {
     await interaction.reply({ embeds: [embed] })
   }
 })
+//#endregion ping command
 
+//#region speak command
 // speak = set chance to 0.05
 client.on('interactionCreate', async (interaction) => {
   if (!interaction.isCommand()) return
@@ -175,7 +184,9 @@ client.on('interactionCreate', async (interaction) => {
     await interaction.reply({ embeds: [embed] })
   }
 })
+//#endregion speak command
 
+//#region shutup command
 // shutup = set chance to 0
 client.on('interactionCreate', async (interaction) => {
   if (!interaction.isCommand()) return
@@ -189,7 +200,9 @@ client.on('interactionCreate', async (interaction) => {
     await interaction.reply({ embeds: [embed] })
   }
 })
+//#endregion shutup command
 
+//#region speakup command
 // speakup = increase chance to respond by 5%
 client.on('interactionCreate', async (interaction) => {
   if (!interaction.isCommand()) return
@@ -203,7 +216,9 @@ client.on('interactionCreate', async (interaction) => {
     await interaction.reply({ embeds: [embed] })
   }
 })
+//#endregion speakup command
 
+//#region speakdown command
 // speakdown = decrease chance to respond by 5%
 client.on('interactionCreate', async (interaction) => {
   if (!interaction.isCommand()) return
@@ -217,7 +232,9 @@ client.on('interactionCreate', async (interaction) => {
     await interaction.reply({ embeds: [embed] })
   }
 })
+//#endregion speakdown command
 
+//#region reset command
 // reset = reset chance to respond to 5%
 client.on('interactionCreate', async (interaction) => {
   if (!interaction.isCommand()) return
@@ -231,7 +248,9 @@ client.on('interactionCreate', async (interaction) => {
     await interaction.reply({ embeds: [embed] })
   }
 })
+//#endregion reset command
 
+//#region status command
 // status = report current status on variables
 client.on('interactionCreate', async (interaction) => {
   if (!interaction.isCommand()) return
@@ -241,16 +260,16 @@ client.on('interactionCreate', async (interaction) => {
       .setTitle(`Current status on variables`)
       .setDescription(
         `Chance to respond overall at: ${myselfDefault.options.chanceToRespond * 100}%\n
-         Completion mode: ${
-          myselfDefault.options.completionMode
-        }\n
+         Completion mode: ${myselfDefault.options.completionMode}\n
          Raw mode: ${myselfDefault.options.rawMode}`
       )
       .setColor(`#abff33`)
     await interaction.reply({ embeds: [embed] })
   }
 })
+//#endregion status command
 
+//#region togglecompletion command
 // toggleCompletion = toggle completion mode
 client.on('interactionCreate', async (interaction) => {
   if (!interaction.isCommand()) return
@@ -264,7 +283,9 @@ client.on('interactionCreate', async (interaction) => {
     await interaction.reply({ embeds: [embed] })
   }
 })
+//#endregion togglecompletion command
 
+//#region setchance command
 // setchance = set chance to a specific value in %
 client.on('interactionCreate', async (interaction) => {
   if (!interaction.isCommand()) return
@@ -272,7 +293,7 @@ client.on('interactionCreate', async (interaction) => {
     // Set the chance to respond to a specific value
     const integer = interaction.options.getInteger('integer')
     //myselfDefault.options.chanceToRespond = integer / 100
-    
+
     const embed = new MessageEmbed()
       .setTitle(`Chance to respond set to ${integer}%`)
       .setDescription(`Chance to respond overall at: ${integer}%`)
@@ -280,7 +301,9 @@ client.on('interactionCreate', async (interaction) => {
     await interaction.reply({ embeds: [embed] })
   }
 })
+//#endregion setchance command
 
+//#region help command
 // help = list of commands
 client.on('interactionCreate', async (interaction) => {
   if (!interaction.isCommand()) return
@@ -311,9 +334,11 @@ client.on('interactionCreate', async (interaction) => {
     await interaction.reply({ embeds: [embed] })
   }
 })
-//#endregion
+//#endregion help command
+//#endregion commands
 
-//#region raw mode
+//#region command raw mode
+// togglerawmode = toggle raw mode
 client.on('interactionCreate', async (interaction) => {
   if (!interaction.isCommand()) return
   if (interaction.commandName === `togglerawmode`) {
@@ -326,8 +351,9 @@ client.on('interactionCreate', async (interaction) => {
     await interaction.reply({ embeds: [embed] })
   }
 })
+//#endregion command raw mode
 
-//#region message event
+//#region main message event
 client.on('messageCreate', async (message) => {
   if (message.author.bot) return
 
@@ -362,6 +388,6 @@ client.on('messageCreate', async (message) => {
     await message.reply(response)
   }
 })
-//#endregion
+//#endregion main message event
 
 client.login(TOKEN)
