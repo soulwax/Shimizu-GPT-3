@@ -315,17 +315,18 @@ client.on('interactionCreate', async (interaction) => {
         `
       **@${client.user.username}** guaranteed response to your message.
       **/experiment** - Start an experiment.
+      **/help** - List of commands.
       **/ping** - Measures the response time of the bot.
-      **/status** - Reports the current status of global variables like chance to respond and completion mode.
-      **/speak** - Sets the chance to respond to 5%.
+      **/reset** - Reset the chance to respond to 5%.
       **/shutup** - Sets the chance to respond to 0%.
+      **/speak** - Sets the chance to respond to 5%.
       **/speakup** - Increases the chance to respond by 5%.
       **/speakdown** - Decreases the chance to respond by 5%.
-      **/speakreset** - Resets the chance to respond to 5%.
+      **/status** - Reports the current status of global variables like chance to respond and completion mode.
       **/setchance** - Sets the chance to respond to a certain percentage.
       **/togglecompletion** - Toggles the completion mode.
       **/togglerawmode** - Toggles the raw mode. The prompt will be sent as is.
-      **Written by**: soulwax#9204
+      **Written by**: soulwax#5358
       **Github:**: https://github.com/soulwax/Shimizu-GPT-3
       `
       )
