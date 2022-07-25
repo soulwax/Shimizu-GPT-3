@@ -60,11 +60,17 @@ const myselfDefault = {
   intents: process.env.MY_INTENTS.split(','),
   key: process.env.OPENAI_API_KEY,
   verbose: process.env.VERBOSE,
-  tokens: parseInt(process.env.MY_MAX_TOKENS),
   options: {
-    completionMode: false,
+    completionMode: true,
     chanceToRespond: 0.05,
     rawMode: process.env.MYSELF_RAW === 'true' ? true : false,
+    openai: {
+      temperature: 0.8,
+      tokens: parseInt(process.env.MY_MAX_TOKENS),
+      top_p: 1.0,
+      frequency_penalty: 0.8,
+      presence_penalty: 0.0,
+    }
   },
   whiteList: WHITELIST,
   blackList: BLACKLIST
@@ -387,7 +393,7 @@ client.on('messageCreate', async (message) => {
     messageHistory.forEach((message) => {
       messageHistoryString += `${message.author.username}: ${message.content}\n`
     })
-    let response = await getPrompt(cleanedText, myselfDefault, author)
+    let response = await getPrompt(myselfDefault.options.rawMode ? rawMessage : cleanedText, myselfDefault, author)
 
     if (response === undefined) {
       // This case should technically never trigger

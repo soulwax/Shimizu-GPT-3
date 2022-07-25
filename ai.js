@@ -56,11 +56,11 @@ const getPrompt = async (prompt, myself, callerName) => {
   
   const params = {
     prompt: fullPrompt,
-    temperature: 0.7,
-    max_tokens: parseInt(myself.tokens),
-    top_p: 0.4,
-    frequency_penalty: 0.5,
-    presence_penalty: 0.0,
+    temperature: myself.options.openai.temperature,
+    max_tokens: myself.options.openai.tokens,
+    top_p: myself.options.openai.top_p,
+    frequency_penalty: myself.options.openai.frequency_penalty,
+    presence_penalty: myself.options.openai.presence_penalty,
     stop: `${callerName}:`
   }
 
@@ -81,7 +81,8 @@ const getPrompt = async (prompt, myself, callerName) => {
     if (myself.verbose) {
       console.log(`Cleaned Response:\n${cleanedResultText}`)
     }
-    return cleanedResultText
+    if(rawMode) return output
+    else return cleanedResultText
   } catch (err) {
     console.log(err)
   }
