@@ -100,8 +100,6 @@ const cleanResultText = (text) => {
       .replace(/^[^a-zA-Z]/, '')
       //clean up any whitespace at the beginning of the sentence and remove it
       .replace(/^\s+/, '')
-      //clean up anything until ':'
-      .replace(/.+?(?=:)/, '')
       // return text
       .trim()
   )

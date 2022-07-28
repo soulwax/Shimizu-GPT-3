@@ -51,7 +51,7 @@ const getPrompt = async (prompt, myself, callerName) => {
     fullPrompt = prompt
   }
   if (myself.verbose) {
-    console.log(`Sending ${rawMode ? 'RAW' : 'full'} prompt...\n${fullPrompt}`)
+    console.log(`Sending ${rawMode ? 'RAW' : 'full'} prompt...\n${fullPrompt}\n${myself.name}: `)
   }
   
   const params = {
@@ -61,7 +61,7 @@ const getPrompt = async (prompt, myself, callerName) => {
     top_p: myself.options.openai.top_p,
     frequency_penalty: myself.options.openai.frequency_penalty,
     presence_penalty: myself.options.openai.presence_penalty,
-    stop: `${callerName}:`
+    stop: [`${callerName}:`, `${myself.name}:`, '\n\n']
   }
 
   const headers = {
