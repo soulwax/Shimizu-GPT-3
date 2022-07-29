@@ -74,7 +74,9 @@ module.exports = (mongoose) => {
     }
   })
 
-  GuildSchema = mongoose.model('Guild', guildSchema) = function getGuildById(id) {
+  GuildModel = mongoose.model('Guild', guildSchema)
+
+  GuildModel = function getGuildById(id) {
     return this.findOne({ guildID: id }).lean()
   }
 
@@ -93,5 +95,5 @@ module.exports = (mongoose) => {
   //TODO: define helper functions for the guild model
   // Define more!
 
-  return GuildSchema
+  return GuildModel
 }

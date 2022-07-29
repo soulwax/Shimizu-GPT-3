@@ -56,22 +56,24 @@ db.once(`open`, () => {
 const myselfDefault = {
   id: process.env.MY_ID,
   name: process.env.MY_NAME,
-  premise: process.env.MY_PREMISE,
   intents: process.env.MY_INTENTS.split(','),
   key: process.env.OPENAI_API_KEY,
-  verbose: process.env.VERBOSE,
+  verbose: process.env.VERBOSE === 'true' ? true : false,
   options: {
-    completionMode: true,
-    chanceToRespond: 0.05,
+    completionMode: process.env.COMPLETION_MODE === 'true' ? true : false,
+    chanceToRespond: parseFloat(process.env.CHANCE_TO_RESPOND),
     rawMode: process.env.MYSELF_RAW === 'true' ? true : false,
+    fullPremise: process.env.MYSELF_FULL_PREMISE,
     openai: {
-      temperature: 0.8,
+      temperature: parseFloat(precess.env.OPENAI_TEMPERATURE),
       tokens: parseInt(process.env.MY_MAX_TOKENS),
-      top_p: 1.0,
-      frequency_penalty: 0.8,
-      presence_penalty: 0.0,
+      top_p: parseFloat(1.0),
+      frequency_penalty: parseFloat(0.8),
+      presence_penalty: parseFloat(0.0),
+      stop: process.env.MY_STOP.split(',')
     }
   },
+  premise: process.env.MY_PREMISE,
   whiteList: WHITELIST,
   blackList: BLACKLIST
 }
@@ -90,9 +92,6 @@ const commands = [
   new SlashCommandBuilder().setName('ping').setDescription('Replies with "pong" if the bot is online.'),
   new SlashCommandBuilder().setName('reset').setDescription('Resets the chance to respond to 5%.'),
   new SlashCommandBuilder().setName('shutup').setDescription('Sets the random response rate to 0%'),
-  new SlashCommandBuilder().setName('speak').setDescription('Sets the random response rate to 5%'),
-  new SlashCommandBuilder().setName('speakup').setDescription('Increases the chance to respond by 5%.'),
-  new SlashCommandBuilder().setName('speakdown').setDescription('Decreases the chance to respond by 5%.'),
   new SlashCommandBuilder().setName('status').setDescription('Reports current status on variables.'),
   new SlashCommandBuilder()
     .setName('setchance')

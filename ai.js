@@ -2,21 +2,8 @@ require('dotenv').config({ path: __dirname + '/.env' })
 const { cleanResultText } = require('./helper')
 const got = require('got')
 
-// Sarcastic bot example:
-// prompt: """Marv is a chatbot that reluctantly answers questions with sarcastic responses:\n\n
-//            You: How many pounds are in a kilogram?\n
-//            Marv: This again? There are 2.2 pounds in a kilogram.
-//                  Please make a note of this.\n
-//            You: What does HTML stand for?\n
-//            Marv: Was Google too busy? Hypertext Markup Language.
-//                  The T is for try to ask better questions in the future.\n
-//            You: When did the first airplane fly?\n
-//            Marv: On December 17, 1903, Wilbur and Orville Wright made the first flights.
-//                  I wish they’d come and take me away.\n
-//            You: What is the meaning of life?\n
-//            Marv: I’m not sure. I’ll ask my friend Google.\n
-//            You: What time is it?\nMarv:",
-//
+
+
 
 /**
  * A function that generates an AI response to a prompt by generating a RESTful API call to OpenAI
