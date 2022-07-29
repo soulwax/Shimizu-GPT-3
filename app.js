@@ -65,11 +65,11 @@ const myselfDefault = {
     rawMode: process.env.MYSELF_RAW === 'true' ? true : false,
     fullPremise: process.env.MYSELF_FULL_PREMISE,
     openai: {
-      temperature: parseFloat(precess.env.OPENAI_TEMPERATURE),
+      temperature: parseFloat(process.env.OPENAI_TEMPERATURE),
       tokens: parseInt(process.env.MY_MAX_TOKENS),
-      top_p: parseFloat(1.0),
-      frequency_penalty: parseFloat(0.8),
-      presence_penalty: parseFloat(0.0),
+      top_p: parseFloat(process.env.TOP_P),
+      frequency_penalty: parseFloat(process.env.FREQUENCY_PENALTY),
+      presence_penalty: parseFloat(process.env.PRESENCE_PENALTY),
       stop: process.env.MY_STOP.split(',')
     }
   },
