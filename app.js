@@ -169,21 +169,7 @@ client.on('interactionCreate', async (interaction) => {
 })
 //#endregion ping command
 
-//#region speak command
-// speak = set chance to 0.05
-client.on('interactionCreate', async (interaction) => {
-  if (!interaction.isCommand()) return
-  if (interaction.commandName === `speak`) {
-    // Set the chance to respond to 5%
-    myselfDefault.options.chanceToRespond = 0.05
-    const embed = new MessageEmbed()
-      .setTitle(`Thank you! I will try to not speak too much.`)
-      .setDescription(`Chance to respond set to 5% although I long to dream of speaking more to you.`)
-      .setColor(`#11ffab`)
-    await interaction.reply({ embeds: [embed] })
-  }
-})
-//#endregion speak command
+
 
 //#region shutup command
 // shutup = set chance to 0
@@ -201,37 +187,6 @@ client.on('interactionCreate', async (interaction) => {
 })
 //#endregion shutup command
 
-//#region speakup command
-// speakup = increase chance to respond by 5%
-client.on('interactionCreate', async (interaction) => {
-  if (!interaction.isCommand()) return
-  if (interaction.commandName === `speakup`) {
-    // Increase the chance to respond by 5%
-    myselfDefault.options.chanceToRespond += 0.05
-    const embed = new MessageEmbed()
-      .setTitle(`Chance to respond increased by 5%`)
-      .setDescription(`Chance to respond overall at: ${myselfDefault.options.chanceToRespond * 100}%`)
-      .setColor(`#11ffab`)
-    await interaction.reply({ embeds: [embed] })
-  }
-})
-//#endregion speakup command
-
-//#region speakdown command
-// speakdown = decrease chance to respond by 5%
-client.on('interactionCreate', async (interaction) => {
-  if (!interaction.isCommand()) return
-  if (interaction.commandName === `speakdown`) {
-    // Decrease the chance to respond by 5%
-    myselfDefault.options.chanceToRespond -= 0.05
-    const embed = new MessageEmbed()
-      .setTitle(`Chance to respond decreased by 5%`)
-      .setDescription(`Chance to respond overall at: ${myselfDefault.options.chanceToRespond * 100}%`)
-      .setColor(`#ab0011`)
-    await interaction.reply({ embeds: [embed] })
-  }
-})
-//#endregion speakdown command
 
 //#region reset command
 // reset = reset chance to respond to 5%
@@ -318,9 +273,6 @@ client.on('interactionCreate', async (interaction) => {
       **/ping** - Measures the response time of the bot.
       **/reset** - Reset the chance to respond to 5%.
       **/shutup** - Sets the chance to respond to 0%.
-      **/speak** - Sets the chance to respond to 5%.
-      **/speakup** - Increases the chance to respond by 5%.
-      **/speakdown** - Decreases the chance to respond by 5%.
       **/status** - Reports the current status of global variables like chance to respond and completion mode.
       **/setchance** - Sets the chance to respond to a certain percentage.
       **/togglecompletion** - Toggles the completion mode.
