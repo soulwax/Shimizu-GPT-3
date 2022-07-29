@@ -5,34 +5,30 @@
  */
 module.exports = (mongoose) => {
   const guildSchema = new mongoose.Schema({
-    guildOptions: {
+    myself:{
+      model: String,
+      prompt: String,
+      temperature: Number,
+      max_tokens: Number,
+      top_p: Number,
+      frequency_penalty: Number,
+      presence_penalty: Number,
+      stop: [String],
+      
+    },
+    guild: {
       type: Object,
-      guildID: {
+      id: {
         type: String,
         required: true
       },
-      myself:{
-        model: String,
-        prompt: String,
-        temperature: Number,
-        max_tokens: Number,
-        top_p: Number,
-        frequency_penalty: Number,
-        presence_penalty: Number,
-        stop: [String]
-      },
-      guildName: {
+      name: {
         type: String,
         required: true
       },
-      guildJoinedAt: {
+      joinedAt: {
         type: Date,
         required: true
-      },
-      premise: {
-        type: String,
-        required: true,
-        default: 'is a chat bot that pretends to be a real discord member'
       },
       tokens: {
         type: Number,
@@ -49,6 +45,11 @@ module.exports = (mongoose) => {
         required: true,
         default: 0.05
       },
+      premise: {
+        type: String,
+        required: true,
+        default: 'is a chat bot that pretends to be a real discord member'
+      },
       whitelistedChannels: {
         type: [String],
         required: false
@@ -57,43 +58,47 @@ module.exports = (mongoose) => {
         type: [String],
         required: false
       },
-      guildMembers: [
-        {
-          type: mongoose.Schema.Types.ObjectId,
-          ref: 'GuildMember',
-          memberID: {
-            type: String,
-            required: true
-          },
-          memberName: {
-            type: String,
-            required: true
-          }
+    },
+    members: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'GuildMember',
+        memberID: {
+          type: String,
+          required: true
+        },
+        memberName: {
+          type: String,
+          required: true
         }
-      ]
-    }
+      }
+    ],
+    // methods: {
+    //   getGuildByID(id) {
+    //     return this.model('Guild').findOne({ id: id })
+    //   },
+    //   getGuildIDByName(name) {
+    //     return this.model('Guild').findOne({ name: name })
+    //   },
+    //   getGuildByName(name) {
+    //     return this.model('Guild').findOne({ name: name })
+    //   },
+    //   getMemberInGuild(memberID) {
+    //     return this.guildMembers.find(member => member.memberID === memberID)
+    //   },
+    //   getMostRecentMessageOfMemberInGuild(guild, member) {
+    //     return this.model('Message').findOne({
+    //       guild: guild,
+    //       member: member
+    //     }).sort({
+    //       createdAt: -1
+    //     })
+    //   }
+    // }
   })
 
-  GuildModel = mongoose.model('Guild', guildSchema)
+  const Guild = mongoose.model('Guild', guildSchema)
 
-  GuildModel = function getGuildById(id) {
-    return this.findOne({ guildID: id }).lean()
-  }
-
-  GuildSchema = function getGuildByName(name) {
-    return this.findOne({ guildName: name }).lean()
-  }
-
-  GuildSchema = function getMemberinGuild(member) {
-    return this.findOne({ guildMembers: member }).lean()
-  }
-
-  GuildSchema = function getMostRecentMessageOfMemberInGuild(guild, member) {
-    return this.findOne({ guildMembers: member }).sort({ 'guildOptions.guildMembers.$.messages.timestamp': -1 }).lean()
-  }
   
-  //TODO: define helper functions for the guild model
-  // Define more!
-
-  return GuildModel
+  return mongoose.model('Guild', guildSchema)
 }
