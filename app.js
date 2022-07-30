@@ -311,8 +311,17 @@ client.on('interactionCreate', async (interaction) => {
 client.on('messageCreate', async (message) => {
   if (message.author.bot) return
   const author = message.author.username
-  const rawMessage = message.content
+  let rawMessage = message.content
 
+  if(message.attachments.size > 0 && rawMessage.length <= 0) {
+    const attachment = message.attachments.first()
+    const attachmentURL = attachment.url
+    rawMessage = attachmentURL
+    if(VERBOSE) console.log(`${author} sent a message with an attachment: ${rawMessage}`)
+  }
+
+
+  if(VERBOSE) console.log(`${author} said: ${rawMessage}`)
   await addMessageToConversation(message, rawMessage) // add the post to the conversation
   // The bot will reply under the following conditions:
   // case 1: the bot is mentioned
