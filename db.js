@@ -1,26 +1,39 @@
 const mongoose = require('mongoose')
+const guild = require('./models/guild.js')
 const Guild = require('./models/guild.js')(mongoose)
 const Conversation = require('./models/conversation.js')(mongoose)
 
 const syncGuildsWithDB = async (client, myself) => {
-  const guilds = client.guilds.cache.map((guild) => guild.name)
-  const guildIDs = client.guilds.cache.map((guild) => guild.id)
+  const guilds = await client.guilds.cache.map((guild) => guild.name)
+  const guildIDs = await client.guilds.cache.map((guild) => guild.id)
   console.log(`\tGuilds: ${guilds.join(', ')}`)
   // Iterate through each guild and add it to the database if it doesn't exist in the collection yet
   for (let i = 0; i < guildIDs.length; i++) {
     const guildID = guildIDs[i]
     const guildName = guilds[i]
-    const guildDBObject = new Guild({
-      guildID: guildID,
-      guildName: guildName,
-      premise: myself.premise,
-      tokens: myself.tokens,
+    const guildDBObject = await new Guild({
+      guildId: guildID,
+      name: guildName,
+      joinedAt: client.guilds.cache.get(guildID).joinedAt.toISOString(),
+      tokens: myself.options.openai.tokens,
       completionMode: myself.options.completionMode,
       chanceToRespond: myself.options.chanceToRespond,
+      premise: myself.premise,
       whitelistedChannels: myself.whiteList,
-      blacklistedChannels: myself.blackList
+      blacklistedChannels: myself.blackList,
+      myself: {
+        myId: myself.id,
+        name: myself.name,
+        model: myself.options.openai.model,
+        apiKey: myself.key,
+        temperature: myself.options.openai.temperature,
+        top_p: myself.options.openai.top_p,
+        frequency_penalty: myself.options.openai.frequency_penalty,
+        presence_penalty: myself.options.openai.presence_penalty,
+        stop: myself.options.openai.stop
+      }
     })
-    Guild.findOne({ guildID: guildID }, (err, guild) => {
+    Guild.findOne({ guildId: guildID }, (err, guild) => {
       if (err) {
         console.error(err)
       } else if (!guild) {
@@ -39,12 +52,12 @@ const syncGuildsWithDB = async (client, myself) => {
     } else {
       for (let i = 0; i < guilds.length; i++) {
         const guild = guilds[i]
-        if (!guildIDs.includes(guild.guildID)) {
-          Guild.deleteOne({ guildID: guild.guildID }, (err) => {
+        if (!guilds.includes(guild.guildId)) {
+          Guild.findOneAndDelete({ guildId: guild.guildId }, (err, guild) => {
             if (err) {
               console.error(err)
             } else {
-              console.log(`\tRemoved ${guild.guildName} from the database.`)
+              console.log(`\tRemoved ${guild.name} from the database.`)
             }
           })
         }
@@ -126,5 +139,12 @@ const getCompletionModeForGuild = async (client, guildID) => {
   })
 }
 
-
-module.exports = { syncGuildsWithDB, getGuild, getConversation, setChanceForGuild, setCompletionModeForGuild, getChanceForGuild, getCompletionModeForGuild }
+module.exports = {
+  syncGuildsWithDB,
+  getGuild,
+  getConversation,
+  setChanceForGuild,
+  setCompletionModeForGuild,
+  getChanceForGuild,
+  getCompletionModeForGuild
+}

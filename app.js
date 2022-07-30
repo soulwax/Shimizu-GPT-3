@@ -54,17 +54,17 @@ db.once(`open`, () => {
 
 //#region myselfDefault
 const myselfDefault = {
-  id: process.env.MY_ID,
+  id: parseInt(process.env.MY_ID),
   name: process.env.MY_NAME,
-  intents: process.env.MY_INTENTS.split(','),
   key: process.env.OPENAI_API_KEY,
+  intents: process.env.MY_INTENTS.split(','),
   verbose: process.env.VERBOSE === 'true' ? true : false,
   options: {
     completionMode: process.env.COMPLETION_MODE === 'true' ? true : false,
-    chanceToRespond: parseFloat(process.env.CHANCE_TO_RESPOND),
     rawMode: process.env.MYSELF_RAW === 'true' ? true : false,
-    fullPremise: process.env.MYSELF_FULL_PREMISE,
+    chanceToRespond: parseFloat(process.env.CHANCE_TO_RESPOND),
     openai: {
+      model: process.env.AI_MODEL,
       temperature: parseFloat(process.env.OPENAI_TEMPERATURE),
       tokens: parseInt(process.env.MY_MAX_TOKENS),
       top_p: parseFloat(process.env.TOP_P),
