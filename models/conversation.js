@@ -10,17 +10,17 @@ module.exports = (mongoose) => {
       enum: ['private', 'channel'],
       default: 'channel'
     },
-    guildID: {
+    guildId: {
       type: String,
       required: true
     },
-    conversations: [
+    channelId: {
+      type: String,
+      required: true
+    },
+    conversation: [
       {
-        conversationID: {
-          type: Number,
-          required: true
-        },
-        userID: {
+        userId: {
           type: String,
           required: true
         },
@@ -31,10 +31,6 @@ module.exports = (mongoose) => {
         },
         messages: [
           {
-            messageID: {
-              type: Number,
-              required: true
-            },
             message: {
               type: String,
               required: true,

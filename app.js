@@ -38,7 +38,9 @@ const {
   setChanceForGuild,
   setCompletionModeForGuild,
   getChanceForGuild,
-  getCompletionModeForGuild
+  getCompletionModeForGuild,
+  createConversation,
+  addMessageToConversation
 } = require('./db.js')
 //#endregion custom requires
 //#endregion requires
@@ -311,12 +313,14 @@ client.on('messageCreate', async (message) => {
   if (message.author.bot) return
   const author = message.author.username
   const rawMessage = message.content
+  // Find out if conversation exists in the database and create it if not
+  await createConversation(message)
+  await addMessageToConversation(message, rawMessage)
   // The bot will reply under the following conditions:
   // case 1: the bot is mentioned
   // case 2: the message was received in a whitelisted channel
   // case 3: the message received was not in a blacklisted channel and
   //         the random chance to respond was successful
-  // TODO: database query to get a history of messages instead of just the last one
   if (
     replyMention(message, client) ||
     isChannelWhitelisted(message, WHITELIST) ||
@@ -336,16 +340,8 @@ client.on('messageCreate', async (message) => {
       console.log(`Clean text: ${cleanedText} length: ${cleanedText.length}`) // trimmed message
     }
 
-    // TODO: database query to get a history of messages instead of just the last one
-    // Get the last five messages in the channel in reverse order
-    const messageHistory = await message.channel.messages.fetch({ limit: 5, before: message.id })
-    // ? Experimental: build a sting of the last five messages in messageHistory
-    let messageHistoryString = ''
-    messageHistory.forEach((message) => {
-      messageHistoryString += `${message.author.username}: ${message.content}\n`
-    })
     let response = await getPrompt(myselfDefault.options.rawMode ? rawMessage : cleanedText, myselfDefault, author)
-
+    await addMessageToConversation(message, response)
     if (response === undefined) {
       // This case should technically never trigger
       // unless we send a faulty prompt

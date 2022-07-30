@@ -9,12 +9,18 @@ const syncGuildsWithDB = async (client, myself) => {
   console.log(`\tGuilds: ${guilds.join(', ')}`)
   // Iterate through each guild and add it to the database if it doesn't exist in the collection yet
   for (let i = 0; i < guildIDs.length; i++) {
-    const guildID = guildIDs[i]
-    const guildName = guilds[i]
-    const guildDBObject = await new Guild({
-      guildId: guildID,
-      name: guildName,
-      joinedAt: client.guilds.cache.get(guildID).joinedAt.toISOString(),
+    const iteratedGuildId = guildIDs[i]
+    const iteratedGuildName = guilds[i]
+    // if the guild already exists in the database, continue
+    if (await Guild.findOne({ guildId: iteratedGuildId })) {
+      console.log(`\t\tGuild ${iteratedGuildName} already exists in the database`)
+      continue
+    }
+    // if the guild doesn't exist in the database, add it
+    const guildDBObject = new Guild({
+      guildId: iteratedGuildId,
+      name: iteratedGuildName,
+      joinedAt: client.guilds.cache.get(iteratedGuildId).joinedAt.toISOString(),
       tokens: myself.options.openai.tokens,
       completionMode: myself.options.completionMode,
       chanceToRespond: myself.options.chanceToRespond,
@@ -33,14 +39,14 @@ const syncGuildsWithDB = async (client, myself) => {
         stop: myself.options.openai.stop
       }
     })
-    Guild.findOne({ guildId: guildID }, (err, guild) => {
+    Guild.findOne({ guildId: iteratedGuildId }, (err, guild) => {
       if (err) {
         console.error(err)
       } else if (!guild) {
         guildDBObject.save()
-        console.log(`\tAdded ${guildName} to the database.`)
+        console.log(`\tAdded ${iteratedGuildName} to the database.`)
       } else {
-        console.log(`\t${guildName} already exists in the database.`)
+        console.log(`\t${iteratedGuildName} already exists in the database.`)
       }
     })
   }
@@ -64,6 +70,68 @@ const syncGuildsWithDB = async (client, myself) => {
       }
     }
   })
+}
+
+// Create a new conversation for a specified guild and channel
+const createConversation = async (message) => {
+  const currentGuildId = message.guild.id
+  const currentGuildName = message.guild.name
+  const currentChannelId = message.channel.id
+  const currentUserId = message.author.id
+  const currentUserName = message.author.username
+  const currentTimestamp = message.createdAt.toISOString()
+  const currentMessage = message.content
+
+  // If the conversation doesn't exist, create it
+  const conversation = await Conversation.findOne({ channelId: currentChannelId })
+  if (!conversation) {
+    const conversationDBObject = new Conversation({
+      type: 'channel',
+      guildId: currentGuildId,
+      channelId: currentChannelId,
+      conversation: [
+        {
+          userId: currentUserId,
+          userName: currentUserName,
+          messages: [
+            {
+              message: currentMessage,
+              timestamp: currentTimestamp
+            }
+          ]
+        }
+      ]
+    })
+    conversationDBObject.save()
+    console.log(`\tCreated conversation for ${currentGuildName} in ${currentChannelId}`)
+  }
+}
+
+// Find the conversation for a specified guild and channel and add a message to it
+const addMessageToConversation = async (message, content) => {
+  const currentGuildName = message.guild.name
+  const currentChannelId = message.channel.id
+  const currentUserId = message.author.id
+  const currentUserName = message.author.username
+  const currentTimestamp = message.createdAt.toISOString()
+
+  const conversation = await Conversation.findOne({ channelId: currentChannelId })
+  if (conversation) {
+    conversation.conversation.push({
+      userId: currentUserId,
+      userName: currentUserName,
+      messages: [
+        {
+          message: content,
+          timestamp: currentTimestamp
+        }
+      ]
+    })
+    conversation.save()
+    console.log(`\tAdded message to conversation for ${currentGuildName} in ${currentChannelId}`)
+  } else {
+    console.log(`\tNo conversation found for ${currentGuildName} in ${currentChannelId}`)
+  }
 }
 
 // Function that gets the guild from the database and returns it
@@ -146,5 +214,7 @@ module.exports = {
   setChanceForGuild,
   setCompletionModeForGuild,
   getChanceForGuild,
-  getCompletionModeForGuild
+  getCompletionModeForGuild,
+  createConversation,
+  addMessageToConversation
 }
