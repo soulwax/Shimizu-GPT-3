@@ -20,6 +20,7 @@ const got = require('got')
  */
 
 const getPrompt = async (prompt, myself, callerName) => {
+  
   const rawMode = myself.options.rawMode
   const url = 'https://api.openai.com/v1/engines/davinci/completions'
   const intro = `${myself.name} ${myself.premise}.`
@@ -29,7 +30,7 @@ const getPrompt = async (prompt, myself, callerName) => {
   if (!rawMode) {
     // The full prompt has the following structure as an example:
     // intro:  "Shimizu is a chatbot who does things."
-    // primer: "Human: Hello Shimizu!"
+    // (optional) primer: "Human: Hello Shimizu!"
     //         "Shimizu: Hello! What an awesome day!"
     // message: "You: What is your name?"
     // "Shimizu: " ... AI generated response!
@@ -38,7 +39,7 @@ const getPrompt = async (prompt, myself, callerName) => {
     fullPrompt = prompt
   }
   if (myself.verbose) {
-    console.log(`Sending ${rawMode ? 'RAW' : 'full'} prompt...\n${fullPrompt}\n${myself.name}: `)
+    console.log(`Sending ${rawMode ? 'RAW' : 'full'} prompt...\n${fullPrompt} `)
   }
   
   const params = {
@@ -48,7 +49,7 @@ const getPrompt = async (prompt, myself, callerName) => {
     top_p: myself.options.openai.top_p,
     frequency_penalty: myself.options.openai.frequency_penalty,
     presence_penalty: myself.options.openai.presence_penalty,
-    stop: [`${callerName}:`, `${myself.name}:`, '\n\n']
+    stop: [`${callerName}:`, `${myself.name}:`, '\n\n', 'You:']
   }
 
   const headers = {
@@ -58,12 +59,6 @@ const getPrompt = async (prompt, myself, callerName) => {
   try {
     const response = await got.post(url, { json: params, headers: headers }).json()
     output = `${response.choices[0].text}`
-    // if (myself.verbose) {
-    //   console.log(` ####### RES OBJECT ####### \n\t ${JSON.stringify(response, null, 2)}`)
-    //   console.log(`### END OBJECT ###`)
-    //   console.log(` ####### Response ####### \n ${output}`)
-    //   console.log(` ####### End Response ####### \n`)
-    // }
     const cleanedResultText = cleanResultText(output)
     if (myself.verbose) {
       console.log(`Cleaned Response:\n${cleanedResultText}`)
@@ -73,33 +68,6 @@ const getPrompt = async (prompt, myself, callerName) => {
   } catch (err) {
     console.log(err)
   }
-}
-
-/**
- * EXPERIMENTAL CACHING (GOES INTO DATABASE SOON)
- */
-// cache last ten prompts and responses
-const cache = {
-  lastTenPrompts: [],
-  lastTenResponses: []
-}
-
-/**
- * EXPERIMENTAL CACHING (GOES INTO DATABASE SOON)
- */
-const getResponseCached = async (prompt, myself, callerName) => {
-  if (cache.lastTenPrompts.includes(prompt)) {
-    const index = cache.lastTenPrompts.indexOf(prompt)
-    return cache.lastTenResponses[index]
-  }
-  const response = await getPrompt(prompt, myself, callerName)
-  cache.lastTenPrompts.push(prompt)
-  cache.lastTenResponses.push(response)
-  if (cache.lastTenPrompts.length > 10) {
-    cache.lastTenPrompts.shift()
-    cache.lastTenResponses.shift()
-  }
-  return response
 }
 
 module.exports = { getPrompt }

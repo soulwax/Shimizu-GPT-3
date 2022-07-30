@@ -44,43 +44,9 @@ const syncGuildsWithDB = async (client, myself) => {
   }
 }
 
-// Create a new conversation for a specified guild and channel
-const createConversation = async (message) => {
-  const currentGuildId = message.guild.id
-  const currentGuildName = message.guild.name
-  const currentChannelId = message.channel.id
-  const currentUserId = message.author.id
-  const currentUserName = message.author.username
-  const currentTimestamp = message.createdAt.toISOString()
-  const currentMessage = message.content
-
-  // If the conversation doesn't exist, create it
-  const conversation = await Conversation.findOne({ channelId: currentChannelId })
-  if (!conversation) {
-    const conversationDBObject = new Conversation({
-      type: 'channel',
-      guildId: currentGuildId,
-      channelId: currentChannelId,
-      conversation: [
-        {
-          userId: currentUserId,
-          userName: currentUserName,
-          messages: [
-            {
-              message: currentMessage,
-              timestamp: currentTimestamp
-            }
-          ]
-        }
-      ]
-    })
-    conversationDBObject.save()
-    console.log(`\tCreated conversation for ${currentGuildName} in ${currentChannelId}`)
-  }
-}
-
 // Find the conversation for a specified guild and channel and add a message to it
 const addMessageToConversation = async (message, content) => {
+  const currentGuildId = message.guild.id
   const currentGuildName = message.guild.name
   const currentChannelId = message.channel.id
   const currentUserId = message.author.id
@@ -102,7 +68,25 @@ const addMessageToConversation = async (message, content) => {
     conversation.save()
     console.log(`\tAdded message to conversation for ${currentGuildName} in ${currentChannelId}`)
   } else {
-    console.log(`\tNo conversation found for ${currentGuildName} in ${currentChannelId}`)
+    console.log(`\tNo conversation found for ${currentGuildName} in ${currentChannelId}. Creating a new one.`)
+    const conversationDBObject = new Conversation({
+      type: 'channel',
+      guildId: currentGuildId,
+      channelId: currentChannelId,
+      conversation: [
+        {
+          userId: currentUserId,
+          userName: currentUserName,
+          messages: [
+            {
+              message: content,
+              timestamp: currentTimestamp
+            }
+          ]
+        }
+      ]
+    })
+    conversationDBObject.save()
   }
 }
 
@@ -187,6 +171,5 @@ module.exports = {
   setCompletionModeForGuild,
   getChanceForGuild,
   getCompletionModeForGuild,
-  createConversation,
   addMessageToConversation
 }

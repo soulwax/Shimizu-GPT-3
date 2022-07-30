@@ -39,7 +39,6 @@ const {
   setCompletionModeForGuild,
   getChanceForGuild,
   getCompletionModeForGuild,
-  createConversation,
   addMessageToConversation
 } = require('./db.js')
 //#endregion custom requires
@@ -313,9 +312,8 @@ client.on('messageCreate', async (message) => {
   if (message.author.bot) return
   const author = message.author.username
   const rawMessage = message.content
-  // Find out if conversation exists in the database and create it if not
-  await createConversation(message)
-  await addMessageToConversation(message, rawMessage)
+
+  await addMessageToConversation(message, rawMessage) // add the post to the conversation
   // The bot will reply under the following conditions:
   // case 1: the bot is mentioned
   // case 2: the message was received in a whitelisted channel
@@ -334,14 +332,8 @@ client.on('messageCreate', async (message) => {
 
     message.channel.sendTyping() // otherwise, start typing
 
-    if (VERBOSE) {
-      console.log(`Original message content created at ${message.createdAt}:`)
-      console.log(`${message.author.username}: ${rawMessage}`) // original message
-      console.log(`Clean text: ${cleanedText} length: ${cleanedText.length}`) // trimmed message
-    }
-
     let response = await getPrompt(myselfDefault.options.rawMode ? rawMessage : cleanedText, myselfDefault, author)
-    await addMessageToConversation(message, response)
+    
     if (response === undefined) {
       // This case should technically never trigger
       // unless we send a faulty prompt
@@ -351,10 +343,10 @@ client.on('messageCreate', async (message) => {
       //the discord API has a limit of 2000 characters
       response = response.substring(0, 2000)
     }
-
     // don't do anything if the response is empty or undefined
     if (response.length == '' || response.length == undefined) return
     // reply with the prompt
+    await addMessageToConversation(message, response) // this time, add the response to the conversation database
     await message.reply(response)
   }
 })
