@@ -15,61 +15,33 @@ const syncGuildsWithDB = async (client, myself) => {
     if (await Guild.findOne({ guildId: iteratedGuildId })) {
       console.log(`\t\tGuild ${iteratedGuildName} already exists in the database`)
       continue
-    }
-    // if the guild doesn't exist in the database, add it
-    const guildDBObject = new Guild({
-      guildId: iteratedGuildId,
-      name: iteratedGuildName,
-      joinedAt: client.guilds.cache.get(iteratedGuildId).joinedAt.toISOString(),
-      tokens: myself.options.openai.tokens,
-      completionMode: myself.options.completionMode,
-      chanceToRespond: myself.options.chanceToRespond,
-      premise: myself.premise,
-      whitelistedChannels: myself.whiteList,
-      blacklistedChannels: myself.blackList,
-      myself: {
-        myId: myself.id,
-        name: myself.name,
-        model: myself.options.openai.model,
-        apiKey: myself.key,
-        temperature: myself.options.openai.temperature,
-        top_p: myself.options.openai.top_p,
-        frequency_penalty: myself.options.openai.frequency_penalty,
-        presence_penalty: myself.options.openai.presence_penalty,
-        stop: myself.options.openai.stop
-      }
-    })
-    Guild.findOne({ guildId: iteratedGuildId }, (err, guild) => {
-      if (err) {
-        console.error(err)
-      } else if (!guild) {
-        guildDBObject.save()
-        console.log(`\tAdded ${iteratedGuildName} to the database.`)
-      } else {
-        console.log(`\t${iteratedGuildName} already exists in the database.`)
-      }
-    })
-  }
-
-  // If there is a guild in the database that is not in the client, remove it from the database
-  Guild.find({}, (err, guilds) => {
-    if (err) {
-      console.error(err)
     } else {
-      for (let i = 0; i < guilds.length; i++) {
-        const guild = guilds[i]
-        if (!guilds.includes(guild.guildId)) {
-          Guild.findOneAndDelete({ guildId: guild.guildId }, (err, guild) => {
-            if (err) {
-              console.error(err)
-            } else {
-              console.log(`\tRemoved ${guild.name} from the database.`)
-            }
-          })
+      // if the guild doesn't exist in the database, add it
+      const guildDBObject = new Guild({
+        guildId: iteratedGuildId,
+        name: iteratedGuildName,
+        joinedAt: client.guilds.cache.get(iteratedGuildId).joinedAt.toISOString(),
+        tokens: myself.options.openai.tokens,
+        completionMode: myself.options.completionMode,
+        chanceToRespond: myself.options.chanceToRespond,
+        premise: myself.premise,
+        whitelistedChannels: myself.whiteList,
+        blacklistedChannels: myself.blackList,
+        myself: {
+          myId: myself.id,
+          name: myself.name,
+          model: myself.options.openai.model,
+          apiKey: myself.key,
+          temperature: myself.options.openai.temperature,
+          top_p: myself.options.openai.top_p,
+          frequency_penalty: myself.options.openai.frequency_penalty,
+          presence_penalty: myself.options.openai.presence_penalty,
+          stop: myself.options.openai.stop
         }
-      }
+      })
+      guildDBObject.save()
     }
-  })
+  }
 }
 
 // Create a new conversation for a specified guild and channel
