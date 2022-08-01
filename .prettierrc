@@ -12,17 +12,5 @@
   "requirePragma": false,
   "insertPragma": false,
   "proseWrap": "never",
-  "htmlWhitespaceSensitivity": "css",
-  "vueIndentScriptAndStyle": false,
-  "vueIndentHTML": false,
-  "vueSingleQuote": false,
-  "vueBracketSameLine": false,
-  "vueBracketSpacing": true,
-  "vueArrowParens": "always",
-  "vueParser": "babel",
-  "vueRequirePragma": false,
-  "vueInsertPragma": false,
-  "vueProseWrap": "never",
-  "vueHtmlWhitespaceSensitivity": "css",
-  "vuePrettierPath": "./node_modules/vue-prettier-plugin"
+  "htmlWhitespaceSensitivity": "css"
 }
