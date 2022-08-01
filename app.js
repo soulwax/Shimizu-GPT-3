@@ -128,6 +128,19 @@ const commands = [
 })()
 //#endregion REFRESH
 
+//#region Discord specific helper functions
+const getStatusForGuildEmbed = (guild) => {
+  const embed = new MessageEmbed()
+  embed.setTitle(`My settings for ${guild.name}:`)
+  embed.setColor(`#00ab69`)
+  embed.addField(`Completion mode: `, `${getCompletionModeForGuild(guild.id)}`)
+  embed.addField(`Raw mode: `, `${getRawModeForGuild(guild.id)}`)
+  embed.addField(`My chance to respond randomly:`, `${getChanceForGuild(guild.id)*100}%`)
+  return embed
+}
+//#endregion Discord specific helper functions
+
+
 //#region ready event
 client.on(`ready`, () => {
   console.log(`Logged in as ${client.user.tag}!`)
@@ -178,7 +191,7 @@ client.on('interactionCreate', async (interaction) => {
   if (!interaction.isCommand()) return
   if (interaction.commandName === `shutup`) {
     // Set the chance to respond to 0%
-    myselfDefault.options.chanceToRespond = 0
+    setChanceForGuild(interaction.guild.id, 0)
     const embed = new MessageEmbed()
       .setTitle(`Chance to respond set to 0%`)
       .setDescription(`Chance to respond set to 0%`)
