@@ -22,16 +22,6 @@ module.exports = (mongoose) => {
       required: true,
       default: 360
     },
-    completionMode: {
-      type: Boolean,
-      required: true,
-      default: false
-    },
-    chanceToRespond: {
-      type: Number,
-      required: true,
-      default: 0.05
-    },
     premise: {
       type: String,
       required: true,
@@ -54,7 +44,10 @@ module.exports = (mongoose) => {
       top_p: {type: Number, min: 0, max: 1, required: true, default: 0.95},
       frequency_penalty: {type: Number, min: 0, max: 1, required: true, default: 0.0},
       presence_penalty: {type: Number, min: 0, max: 1, required: true, default: 0.0},
-      stop: {type: [String], required: true, default: ['Shimizu', '\n']}
+      stop: {type: [String], required: true, default: ['Shimizu', '\n']},
+      chanceToRespond: {type: Number, min: 0, max: 1, required: true, default: 0.05},
+      rawMode: {type: Boolean, required: true, default: false},
+      completionMode: {type: Boolean, required: true, default: false}
     }
     // methods: {
     //   getGuildByID(id) {
@@ -83,5 +76,5 @@ module.exports = (mongoose) => {
   const Guild = mongoose.model('Guild', guildSchema)
 
   
-  return mongoose.model('Guild', guildSchema)
+  return Guild
 }

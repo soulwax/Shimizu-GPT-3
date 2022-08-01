@@ -40,7 +40,8 @@ const {
   getChanceForGuild,
   getCompletionModeForGuild,
   getRawModeForGuild,
-  addMessageToConversation
+  addMessageToConversation,
+  getGuild
 } = require('./db.js')
 //#endregion custom requires
 //#endregion requires
@@ -64,7 +65,7 @@ const myselfDefault = {
   verbose: process.env.VERBOSE === 'true' ? true : false,
   options: {
     completionMode: process.env.COMPLETION_MODE === 'true' ? true : false,
-    rawMode: process.env.MYSELF_RAW === 'true' ? true : false,
+    rawMode: process.env.RAW_MODE === 'true' ? true : false,
     chanceToRespond: parseFloat(process.env.CHANCE_TO_RESPOND),
     openai: {
       model: process.env.AI_MODEL,
@@ -141,17 +142,31 @@ const getStatusForGuildEmbed = (guild) => {
   return embed
 }
 
-const getMyselfForGuild = (guildID) => {
+// Cache Guilds to prevent database queries by key being the guild id
+const guilds = {}
+const getGuildCached = async (id) => {
+  if (guilds[id]) return guilds[id]
+  const guild = await getGuild(id)
+  guilds[id] = guild
+  return guild
+}
+
+const getMyselfForGuild = async (guildID) => {
+  const guild = await getGuildCached(guildID)
+  if (!guild) {
+    return myselfDefault
+  }
   const myself = {
+    
     id: myselfDefault.id,
     name: myselfDefault.name,
     key: myselfDefault.key,
     intents: myselfDefault.intents,
     verbose: myselfDefault.verbose,
     options: {
-      completionMode: getCompletionModeForGuild(guildID),
-      rawMode: getRawModeForGuild(guildID),
-      chanceToRespond: getChanceForGuild(guildID),
+      completionMode: guild.chanceToRespond,
+      rawMode: guild.rawMode,
+      chanceToRespond: guild.completionMode,
       openai: {
         model: myselfDefault.options.openai.model,
         temperature: myselfDefault.options.openai.temperature,
@@ -346,12 +361,15 @@ client.on('interactionCreate', async (interaction) => {
 //#region main message event
 client.on('messageCreate', async (message) => {
   if (message.author.bot) return
-  const channelID = message.channel.id
   const guildID = message.guild.id
+  const myself = await getMyselfForGuild(guildID)
   const author = message.author.username
   let rawMessage = message.content
+  
+  const chanceToRespond = myself.options.chanceToRespond
+  const completionMode = myself.options.completionMode
+  const rawMode = myself.options.rawMode
 
-  const myself = getMyselfForGuild(guildID)
 
   if(message.attachments.size > 0 && rawMessage.length <= 0) {
     const attachment = message.attachments.first()
@@ -371,17 +389,17 @@ client.on('messageCreate', async (message) => {
   if (
     replyMention(message, client) ||
     isChannelWhitelisted(message, WHITELIST) ||
-    (getRandom(getChanceForGuild(guildID)) && !isChannelBlacklisted(message, BLACKLIST))
+    (getRandom(chanceToRespond) && !isChannelBlacklisted(message, BLACKLIST))
   ) {
     // to work with the message, we need to clean it from discord's markdown
     // get rid of discord names and emojis
     // ? is this really necessary?
-    const cleanedText = cleanText(rawMessage, getCompletionModeForGuild(guildID))
+    const cleanedText = cleanText(rawMessage, completionMode)
     if (cleanedText.length <= 0) return // if the cleaned text is empty, don't do anything
 
     message.channel.sendTyping() // otherwise, start typing
 
-    let response = await getPrompt(getRawModeForGuild(guildID) ? rawMessage : cleanedText, myself, author)
+    let response = await getPrompt(rawMode ? rawMessage : cleanedText, myself, author)
     
     if (response === undefined) {
       // This case should technically never trigger

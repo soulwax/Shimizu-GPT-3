@@ -1,5 +1,4 @@
 const mongoose = require('mongoose')
-const guild = require('./models/guild.js')
 const Guild = require('./models/guild.js')(mongoose)
 const Conversation = require('./models/conversation.js')(mongoose)
 
@@ -22,8 +21,6 @@ const syncGuildsWithDB = async (client, myself) => {
         name: iteratedGuildName,
         joinedAt: client.guilds.cache.get(iteratedGuildId).joinedAt.toISOString(),
         tokens: myself.options.openai.tokens,
-        completionMode: myself.options.completionMode,
-        chanceToRespond: myself.options.chanceToRespond,
         premise: myself.premise,
         whitelistedChannels: myself.whiteList,
         blacklistedChannels: myself.blackList,
@@ -36,7 +33,10 @@ const syncGuildsWithDB = async (client, myself) => {
           top_p: myself.options.openai.top_p,
           frequency_penalty: myself.options.openai.frequency_penalty,
           presence_penalty: myself.options.openai.presence_penalty,
-          stop: myself.options.openai.stop
+          stop: myself.options.openai.stop,
+          completionMode: myself.options.completionMode,
+          chanceToRespond: myself.options.chanceToRespond,
+          rawMode: myself.options.rawMode
         }
       })
       guildDBObject.save()
@@ -126,7 +126,7 @@ const setRawModeForGuild = async (guildID, mode) => {
 
 // Function that gets the guild from the database and returns it
 const getGuild = async (guildID) => {
-  Guild.findOne({ guildID: guildID }, (err, guild) => {
+  Guild.findOne({ guildId: guildID }, (err, guild) => {
     if (err) {
       console.error(err)
     } else if (!guild) {
@@ -141,7 +141,7 @@ const getGuild = async (guildID) => {
 // Function that finds the conversation and guild from the database and returns the last 10 objects in the conversation
 // TODO: PROTOTYPE: USE AT YOUR OWN RISK!
 const getConversation = async (guildID, channelID) => {
-  Guild.findOne({ guildID: guildID }, (err, guild) => {
+  Guild.findOne({ guildId: guildID }, (err, guild) => {
     if (err) {
       console.error(err)
     } else if (!guild) {
