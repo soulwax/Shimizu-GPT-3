@@ -220,6 +220,7 @@ const getRawModeForGuild = async (guildID) => {
 module.exports = {
   syncGuildsWithDB,
   getGuild,
+  updateGuildVariables,
   getConversation,
   setChanceForGuild,
   setCompletionModeForGuild,
