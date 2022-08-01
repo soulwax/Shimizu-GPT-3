@@ -192,6 +192,7 @@ module.exports = {
   setChanceForGuild,
   setCompletionModeForGuild,
   setRawModeForGuild,
+  getRawModeForGuild,
   getChanceForGuild,
   getCompletionModeForGuild,
   addMessageToConversation

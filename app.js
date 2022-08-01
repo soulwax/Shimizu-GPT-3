@@ -39,6 +39,7 @@ const {
   setRawModeForGuild,
   getChanceForGuild,
   getCompletionModeForGuild,
+  getRawModeForGuild,
   addMessageToConversation
 } = require('./db.js')
 //#endregion custom requires
@@ -138,6 +139,35 @@ const getStatusForGuildEmbed = (guild) => {
   embed.addField(`My chance to respond randomly:`, `${getChanceForGuild(guild.id)*100}%`)
   return embed
 }
+
+const getMyselfForGuild = (guildID) => {
+  const myself = {
+    id: myselfDefault.id,
+    name: myselfDefault.name,
+    key: myselfDefault.key,
+    intents: myselfDefault.intents,
+    verbose: myselfDefault.verbose,
+    options: {
+      completionMode: getCompletionModeForGuild(guildID),
+      rawMode: getRawModeForGuild(guildID),
+      chanceToRespond: getChanceForGuild(guildID),
+      openai: {
+        model: myselfDefault.options.openai.model,
+        temperature: myselfDefault.options.openai.temperature,
+        tokens: myselfDefault.options.openai.tokens,
+        top_p: myselfDefault.options.openai.top_p,
+        frequency_penalty: myselfDefault.options.openai.frequency_penalty,
+        presence_penalty: myselfDefault.options.openai.presence_penalty,
+        stop: myselfDefault.options.openai.stop
+      }
+    },
+    //TODO: make guild specific
+    premise: myselfDefault.premise,
+    whiteList: myselfDefault.whiteList,
+    blackList: myselfDefault.blackList
+  }
+  return myself
+}
 //#endregion Discord specific helper functions
 
 
@@ -193,8 +223,8 @@ client.on('interactionCreate', async (interaction) => {
     // Set the chance to respond to 0%
     setChanceForGuild(interaction.guild.id, 0)
     const embed = new MessageEmbed()
-      .setTitle(`Chance to respond set to 0%`)
-      .setDescription(`Chance to respond set to 0%`)
+      .setTitle(`Chance to respond for ${interaction.guild.name} was set to 0%`)
+      .setDescription(`I will not respond to any messages randomly anymore. :(`)
       .setColor(`#9fff00`)
     await interaction.reply({ embeds: [embed] })
   }
@@ -203,16 +233,14 @@ client.on('interactionCreate', async (interaction) => {
 
 
 //#region reset command
-// reset = reset chance to respond to 5%
+// reset = sets all guild variables to their default values
 client.on('interactionCreate', async (interaction) => {
   if (!interaction.isCommand()) return
   if (interaction.commandName === `reset`) {
-    // Reset the chance to respond to 5%
-    myselfDefault.options.chanceToRespond = 0.05
-    const embed = new MessageEmbed()
-      .setTitle(`Chance to respond reset to 5%`)
-      .setDescription(`Chance to respond overall at: ${myselfDefault.options.chanceToRespond * 100}%`)
-      .setColor(`#11ffab`)
+    setChanceForGuild(interaction.guild.id, myselfDefault.options.chanceToRespond)
+    setCompletionModeForGuild(interaction.guild.id, myselfDefault.options.completionMode)
+    setRawModeForGuild(interaction.guild.id, myselfDefault.options.rawMode)
+    const embed = getStatusForGuildEmbed(interaction.guild)
     await interaction.reply({ embeds: [embed] })
   }
 })
@@ -224,14 +252,7 @@ client.on('interactionCreate', async (interaction) => {
   if (!interaction.isCommand()) return
   if (interaction.commandName === `status`) {
     // Report current status on variables
-    const embed = new MessageEmbed()
-      .setTitle(`Current status on variables`)
-      .setDescription(
-        `Chance to respond overall at: ${myselfDefault.options.chanceToRespond * 100}%\n
-         Completion mode: ${myselfDefault.options.completionMode}\n
-         Raw mode: ${myselfDefault.options.rawMode}`
-      )
-      .setColor(`#abff33`)
+    const embed = getStatusForGuildEmbed(interaction.guild)
     await interaction.reply({ embeds: [embed] })
   }
 })
@@ -243,9 +264,9 @@ client.on('interactionCreate', async (interaction) => {
   if (!interaction.isCommand()) return
   if (interaction.commandName === `togglecompletion`) {
     // Toggle completion mode
-    myselfDefault.options.completionMode = !myselfDefault.options.completionMode
+    setCompletionModeForGuild(interaction.guild.id, !getCompletionModeForGuild(interaction.guild.id))
     const embed = new MessageEmbed()
-      .setTitle(`Completion mode toggled`)
+      .setTitle(`Completion mode toggled for ${interaction.guild.name}`)
       .setDescription(`Completion mode is now: ${myselfDefault.options.completionMode}`)
       .setColor(`#23ff67`)
     await interaction.reply({ embeds: [embed] })
@@ -260,11 +281,12 @@ client.on('interactionCreate', async (interaction) => {
   if (interaction.commandName === `setchance`) {
     // Set the chance to respond to a specific value
     const integer = interaction.options.getInteger('integer')
-    //myselfDefault.options.chanceToRespond = integer / 100
-
+    if (integer) {
+      setChanceForGuild(interaction.guild.id, integer / 100)
+    }
     const embed = new MessageEmbed()
-      .setTitle(`Chance to respond set to ${integer}%`)
-      .setDescription(`Chance to respond overall at: ${integer}%`)
+      .setTitle(`Chance to respond for ${interaction.guild.name}`)
+      .setDescription(`Chance to respond is now: ${myselfDefault.options.chanceToRespond}%`)
       .setColor(`#11ffab`)
     await interaction.reply({ embeds: [embed] })
   }
@@ -309,9 +331,9 @@ client.on('interactionCreate', async (interaction) => {
   if (!interaction.isCommand()) return
   if (interaction.commandName === `togglerawmode`) {
     // Toggle raw mode
-    myselfDefault.options.rawMode = !myselfDefault.options.rawMode
+    setRawModeForGuild(interaction.guild.id, !getRawModeForGuild(interaction.guild.id))
     const embed = new MessageEmbed()
-      .setTitle(`Raw mode toggled`)
+      .setTitle(`Raw mode toggled for ${interaction.guild.name}`)
       .setDescription(`Raw mode is now: ${myselfDefault.options.rawMode}`)
       .setColor(`#23ff67`)
     await interaction.reply({ embeds: [embed] })
@@ -323,8 +345,12 @@ client.on('interactionCreate', async (interaction) => {
 //#region main message event
 client.on('messageCreate', async (message) => {
   if (message.author.bot) return
+  const channelID = message.channel.id
+  const guildID = message.guild.id
   const author = message.author.username
   let rawMessage = message.content
+
+  const myself = getMyselfForGuild(guildID)
 
   if(message.attachments.size > 0 && rawMessage.length <= 0) {
     const attachment = message.attachments.first()
@@ -344,17 +370,17 @@ client.on('messageCreate', async (message) => {
   if (
     replyMention(message, client) ||
     isChannelWhitelisted(message, WHITELIST) ||
-    (getRandom(myselfDefault.options.chanceToRespond) && !isChannelBlacklisted(message, BLACKLIST))
+    (getRandom(getChanceForGuild(guildID)) && !isChannelBlacklisted(message, BLACKLIST))
   ) {
     // to work with the message, we need to clean it from discord's markdown
     // get rid of discord names and emojis
     // ? is this really necessary?
-    const cleanedText = cleanText(rawMessage, myselfDefault.options.completionMode)
+    const cleanedText = cleanText(rawMessage, getCompletionModeForGuild(guildID))
     if (cleanedText.length <= 0) return // if the cleaned text is empty, don't do anything
 
     message.channel.sendTyping() // otherwise, start typing
 
-    let response = await getPrompt(myselfDefault.options.rawMode ? rawMessage : cleanedText, myselfDefault, author)
+    let response = await getPrompt(getRawModeForGuild(guildID) ? rawMessage : cleanedText, myself, author)
     
     if (response === undefined) {
       // This case should technically never trigger
