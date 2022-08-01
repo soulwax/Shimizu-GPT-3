@@ -41,6 +41,7 @@ const {
   getCompletionModeForGuild,
   getRawModeForGuild,
   addMessageToConversation,
+  updateGuildVariables,
   getGuild
 } = require('./db.js')
 //#endregion custom requires
@@ -418,5 +419,12 @@ client.on('messageCreate', async (message) => {
   }
 })
 //#endregion main message event
+
+//On discord bot shutdown
+client.on('disconnect', () => {
+  // Write back changes to the database
+  updateGuildVariables(guilds)
+  console.log('Disconnected')
+})
 
 client.login(TOKEN)

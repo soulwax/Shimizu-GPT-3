@@ -44,6 +44,19 @@ const syncGuildsWithDB = async (client, myself) => {
   }
 }
 
+// Update guild values in the database given an array of guild objects
+const updateGuildVariables = async (guilds) => {
+  for (let i = 0; i < guilds.length; i++) {
+    const guild = guilds[i]
+    const guildDBObject = await Guild.findOne({ guildId: guild.id })
+    guildDBObject.myself.completionMode = guild.myself.completionMode
+    guildDBObject.myself.chanceToRespond = guild.myself.chanceToRespond
+    guildDBObject.myself.rawMode = guild.myself.rawMode
+    guildDBObject.save()
+  }
+}
+
+
 // Find the conversation for a specified guild and channel and add a message to it
 const addMessageToConversation = async (message, content) => {
   const currentGuildId = message.guild.id
