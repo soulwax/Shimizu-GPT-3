@@ -54,6 +54,7 @@ db.once(`open`, () => {
 })
 //#endregion mongoose
 
+//TODO: get rid of or place somewhere else
 //#region myselfDefault
 const myselfDefault = {
   id: parseInt(process.env.MY_ID),
