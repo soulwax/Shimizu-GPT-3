@@ -368,8 +368,8 @@ client.on('messageCreate', async (message) => {
   let rawMessage = message.content
   
   const chanceToRespond = myself.options.chanceToRespond
-  const completionMode = myself.options.completionMode
-  const rawMode = myself.options.rawMode
+  const isCompletionMode = myself.options.completionMode
+  const isRawMode = myself.options.rawMode
 
 
   if(message.attachments.size > 0 && rawMessage.length <= 0) {
@@ -395,12 +395,12 @@ client.on('messageCreate', async (message) => {
     // to work with the message, we need to clean it from discord's markdown
     // get rid of discord names and emojis
     // ? is this really necessary?
-    const cleanedText = cleanText(rawMessage, completionMode)
+    const cleanedText = cleanText(rawMessage, isCompletionMode)
     if (cleanedText.length <= 0) return // if the cleaned text is empty, don't do anything
 
     message.channel.sendTyping() // otherwise, start typing
 
-    let response = await getPrompt(rawMode ? rawMessage : cleanedText, myself, author)
+    let response = await getPrompt(isRawMode ? rawMessage : cleanedText, myself, author)
     
     if (response === undefined) {
       // This case should technically never trigger
