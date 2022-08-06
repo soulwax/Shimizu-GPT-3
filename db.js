@@ -122,25 +122,25 @@ const setCompletionModeForGuild = async (guildID, mode) => {
 }
 
 const setRawModeForGuild = async (guildID, mode) => {
-  await getGuild(guildID).then((guild) => {
-    guild.myself.rawMode = mode
-    guild.save()
-  }).catch((err) => {
-    console.log(err)
-  })
+  await getGuild(guildID)
+    .then((guild) => {
+      guild.myself.rawMode = mode
+      guild.save()
+    })
+    .catch((err) => {
+      console.log(err)
+    })
 }
 
 // Function that gets the guild from the database and returns it
 const getGuild = async (guildID) => {
-  try {
-    await Guild.findOne({ guildId: guildID }).then((guild) => {
+  await Guild.findOne({ guildId: guildID })
+    .then((guild) => {
       return guild
-    }).catch((err) => {
+    })
+    .catch((err) => {
       console.log(err)
     })
-  } catch (err) {
-    console.log(err)
-  }
 }
 
 // Function that finds the conversation and guild from the database and returns the last 10 objects in the conversation
@@ -175,11 +175,11 @@ const getChanceForGuild = async (guildID) => {
     if (!guild) {
       console.log(`\tNo guild found for ${guildID}`)
       return false
-    } else if (!guild.myself.chanceToRespond) {
+    } else if (guild.myself.chanceToRespond === undefined) {
       console.log(`\tNo chance found for ${guildID}`)
       return false
     } else {
-      console.log(`\tChance found for ${guildID}, it is ${guild.chanceToRespond*100}%`)
+      console.log(`\tChance found for ${guildID}, it is ${guild.chanceToRespond * 100}%`)
       return guild.myself.chanceToRespond || 0
     }
   })
@@ -188,7 +188,7 @@ const getChanceForGuild = async (guildID) => {
 // Get the completion mode for a specified guild
 const getCompletionModeForGuild = async (guildID) => {
   await getGuild(guildID).then((guild) => {
-    if (!guild || !guild.myself.completionMode) {
+    if (!guild && guild.myself.completionMode === undefined) {
       console.log(`\tNo completion mode found for ${guildID}`)
       return false
     } else {
@@ -200,7 +200,7 @@ const getCompletionModeForGuild = async (guildID) => {
 
 const getRawModeForGuild = async (guildID) => {
   await getGuild(guildID).then((guild) => {
-    if (!guild || !guild.myself.rawMode) {
+    if (!guild && guild.myself.rawMode === undefined) {
       console.log(`\tNo raw mode found for ${guildID}`)
       return false
     } else {
