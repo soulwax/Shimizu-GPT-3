@@ -195,11 +195,20 @@ client.on(`ready`, () => {
     `${myselfDefault.name} has started, with ${client.users.cache.size} users, in ${client.channels.cache.size} channels of ${client.guilds.cache.size} guilds.`
   )
   console.log(`\tVerbose Mode: ${VERBOSE}`)
+  // Set own description
+  client.user.setActivity(`with myself :pepe:`, { type: `PLAYING` })
+  client.user.setPresence(
+    `Contribute to my code base here:
+    https://github.com/soulwax/Shimizu-GPT-3
+    You will need your own API keys for deployment!
+    `
+    )
   //#region refresh guilds
   syncGuildsWithDB(client, myselfDefault)
   //#endregion refresh guilds
 })
 //#endregion ready event
+
 
 //#region slash command events
 //#region experiment command

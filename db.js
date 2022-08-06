@@ -39,7 +39,7 @@ const syncGuildsWithDB = async (client, myself) => {
           rawMode: myself.options.rawMode
         }
       })
-      guildDBObject.save()
+      await guildDBObject.save()
     }
   }
 }
@@ -52,7 +52,7 @@ const updateGuildVariables = async (guilds) => {
     guildDBObject.myself.completionMode = guild.myself.completionMode
     guildDBObject.myself.chanceToRespond = guild.myself.chanceToRespond
     guildDBObject.myself.rawMode = guild.myself.rawMode
-    guildDBObject.save()
+    await guildDBObject.save()
   }
 }
 
@@ -78,7 +78,7 @@ const addMessageToConversation = async (message, content) => {
         }
       ]
     })
-    conversation.save()
+    await conversation.save()
     console.log(`\tAdded message to conversation for ${currentGuildName} in ${currentChannelId}`)
   } else {
     console.log(`\tNo conversation found for ${currentGuildName} in ${currentChannelId}. Creating a new one.`)
@@ -99,7 +99,7 @@ const addMessageToConversation = async (message, content) => {
         }
       ]
     })
-    conversationDBObject.save()
+    await conversationDBObject.save()
   }
 }
 
@@ -107,7 +107,7 @@ const setChanceForGuild = async (guildID, chance) => {
   const guild = await getGuild(guildID)
   if (guild) {
     guild.chanceToRespond = chance
-    guild.save()
+    await guild.save()
     console.log(`\tAdjusted chance for guild ${guildID} to ${chance}`)
   } else {
     console.log(`\tNo guild found for ${guildID}`)
@@ -118,7 +118,7 @@ const setCompletionModeForGuild = async (guildID, mode) => {
   const guild = await getGuild(guildID)
   if (guild) {
     guild.completionMode = mode
-    guild.save()
+    await guild.save()
     console.log(`\tAdjusted completion mode for guild ${guildID} to ${mode}`)
   } else {
     console.log(`\tNo guild found for ${guildID}`)
@@ -129,7 +129,7 @@ const setRawModeForGuild = async (guildID, mode) => {
   const guild = await getGuild(guildID)
   if (guild) {
     guild.rawMode = mode
-    guild.save()
+    await guild.save()
     console.log(`\tAdjusted raw mode for guild ${guildID} to ${mode}`)
   } else {
     console.log(`\tNo guild found for ${guildID}`)
