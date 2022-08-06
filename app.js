@@ -242,7 +242,7 @@ client.on('interactionCreate', async (interaction) => {
   if (!interaction.isCommand()) return
   if (interaction.commandName === `shutup`) {
     // Set the chance to respond to 0%
-    setChanceForGuild(interaction.guild.id, 0)
+    await setChanceForGuild(interaction.guild.id, 0)
     const embed = new MessageEmbed()
       .setTitle(`Chance to respond for ${interaction.guild.name} was set to 0%`)
       .setDescription(`I will not respond to any messages randomly anymore. :(`)
@@ -308,7 +308,7 @@ client.on('interactionCreate', async (interaction) => {
       const newValue = await setChanceForGuild(interaction.guild.id, integer / 100)
       const embed = new MessageEmbed()
         .setTitle(`Chance to respond for ${interaction.guild.name}`)
-        .setDescription(`Chance to respond is now: ${newValue}%`)
+        .setDescription(`Chance to respond is now: ${newValue*100}%`)
         .setColor(`#11ffab`)
       await interaction.reply({ embeds: [embed] })
     }
