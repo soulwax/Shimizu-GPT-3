@@ -189,22 +189,22 @@ const getMyselfForGuild = async (guildID) => {
 
 
 //#region ready event
-client.on(`ready`, () => {
+client.on(`ready`, async () => {
   console.log(`Logged in as ${client.user.tag}!`)
   console.log(
     `${myselfDefault.name} has started, with ${client.users.cache.size} users, in ${client.channels.cache.size} channels of ${client.guilds.cache.size} guilds.`
   )
   console.log(`\tVerbose Mode: ${VERBOSE}`)
-  // Set own description
-  client.user.setActivity(`with myself :pepe:`, { type: `PLAYING` })
-  client.user.setPresence(
+    // Set own description
+  await client.user.setActivity(`with myself :pepe:`, { type: `PLAYING` })
+  await client.user.setPresence(
     `Contribute to my code base here:
     https://github.com/soulwax/Shimizu-GPT-3
     You will need your own API keys for deployment!
     `
     )
   //#region refresh guilds
-  syncGuildsWithDB(client, myselfDefault)
+  await syncGuildsWithDB(client, myselfDefault)
   //#endregion refresh guilds
 })
 //#endregion ready event

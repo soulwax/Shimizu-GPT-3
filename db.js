@@ -171,43 +171,47 @@ const getConversation = async (guildID, channelID) => {
 
 // Get the chance to reply for a specified guild
 const getChanceForGuild = async (guildID) => {
-  await getGuild(guildID).then((guild) => {
-    if (!guild) {
-      console.log(`\tNo guild found for ${guildID}`)
-      return false
-    } else if (guild.myself.chanceToRespond === undefined) {
-      console.log(`\tNo chance found for ${guildID}`)
-      return false
-    } else {
-      console.log(`\tChance found for ${guildID}, it is ${guild.chanceToRespond * 100}%`)
-      return guild.myself.chanceToRespond || 0
-    }
-  })
+  const guild = await getGuild(guildID)
+  if (!guild) {
+    console.log(`\tNo guild found while trying to get chance... id: ${guildID}`)
+    return false
+  } else if (guild.myself.chanceToRespond === undefined) {
+    console.log(`\tNo chance found for ${guildID} but the guild was found.`)
+    return false
+  } else {
+    console.log(`\tChance found for ${guildID}, it is ${guild.chanceToRespond * 100}%`)
+    return guild.myself.chanceToRespond || 0
+  }
 }
 
 // Get the completion mode for a specified guild
 const getCompletionModeForGuild = async (guildID) => {
-  await getGuild(guildID).then((guild) => {
-    if (!guild && guild.myself.completionMode === undefined) {
-      console.log(`\tNo completion mode found for ${guildID}`)
-      return false
-    } else {
-      console.log(`\tCompletion mode found for ${guildID}, ${guild.completionMode}`)
-      return guild.myself.completionMode || false
-    }
-  })
+  const guild = await getGuild(guildID)
+  if (!guild) {
+    console.log(`\tNo completion mode found for ${guildID}`)
+    return false
+    
+  } else if (guild.myself.completionMode === undefined) {
+    console.log(`\tNo completion mode found for ${guildID} but the guild was found.`)
+    return false
+  } else {
+    console.log(`\tCompletion mode found for ${guildID}, ${guild.completionMode}`)
+    return guild.myself.completionMode || false
+  }
 }
 
 const getRawModeForGuild = async (guildID) => {
-  await getGuild(guildID).then((guild) => {
-    if (!guild && guild.myself.rawMode === undefined) {
-      console.log(`\tNo raw mode found for ${guildID}`)
-      return false
-    } else {
-      console.log(`\tRaw mode found for ${guildID}, returning ${guild.myself.rawMode}`)
-      return guild.myself.rawMode || false
-    }
-  })
+  const guild = await getGuild(guildID)
+  if (!guild) {
+    console.log(`\tNo raw mode found for ${guildID}`)
+    return false
+  } else if(guild.myself.rawMode === undefined) {
+    console.log(`\tNo raw mode found for ${guildID} but the guild was found.`)
+    return false
+  } else {
+    console.log(`\tRaw mode found for ${guildID}, returning ${guild.myself.rawMode}`)
+    return guild.myself.rawMode || false
+  }
 }
 
 module.exports = {
