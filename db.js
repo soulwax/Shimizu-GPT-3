@@ -5,7 +5,7 @@ const Conversation = require('./models/conversation.js')(mongoose)
 const syncGuildsWithDB = async (client, myself) => {
   const guilds = await client.guilds.cache.map((guild) => guild.name)
   const guildIDs = await client.guilds.cache.map((guild) => guild.id)
-  console.log(`\tGuilds: ${guilds.join(', ')}`)
+  console.log(`\tGuilds: ${guilds.join(', ')}`) //TODO: add verbose option
   // Iterate through each guild and add it to the database if it doesn't exist in the collection yet
   for (let i = 0; i < guildIDs.length; i++) {
     const iteratedGuildId = guildIDs[i]
@@ -108,6 +108,7 @@ const setChanceForGuild = async (guildID, chance) => {
   guild.myself.chanceToRespond = chance
   await guild.save()
   console.log(`\tAdjusted chance for guild ${guildID} to ${chance} or ${chance * 100}%`)
+  return guild.myself.chanceToRespond // setting always returns the current value (for convenience)
 }
 
 const setCompletionModeForGuild = async (guildID, mode) => {
@@ -116,6 +117,7 @@ const setCompletionModeForGuild = async (guildID, mode) => {
   guild.myself.completionMode = mode
   await guild.save()
   console.log(`\tAdjusted completion mode for guild ${guildID} to ${mode}`)
+  return guild.myself.completionMode // setting always returns the current value (for convenience)
 }
 
 const setRawModeForGuild = async (guildID, mode) => {
@@ -123,7 +125,8 @@ const setRawModeForGuild = async (guildID, mode) => {
   if(!guild) return
   guild.myself.rawMode = mode
   await guild.save()
-  console.log(`\tAdjusted raw mode for guild ${guildID} to ${mode}`)
+  if(VERBOSE) console.log(`\tAdjusted raw mode for guild ${guildID} to ${mode}`)
+  return guild.myself.rawMode // setting always returns the current value (for convenience)
 }
 
 // Function that gets the guild from the database and returns it
@@ -167,7 +170,7 @@ const getChanceForGuild = async (guildID) => {
     console.log(`\tNo chance found for ${guildID} but the guild was found.`)
     return false
   } else {
-    console.log(`\tChance found for ${guildID}, it is ${guild.chanceToRespond * 100}%`)
+    console.log(`\tChance found for ${guildID}, it is ${guild.myself.chanceToRespond * 100}%`)
     return guild.myself.chanceToRespond || 0
   }
 }
@@ -183,7 +186,7 @@ const getCompletionModeForGuild = async (guildID) => {
     console.log(`\tNo completion mode found for ${guildID} but the guild was found.`)
     return false
   } else {
-    console.log(`\tCompletion mode found for ${guildID}, ${guild.completionMode}`)
+    console.log(`\tCompletion mode found for ${guildID}, ${guild.myself.completionMode}`)
     return guild.myself.completionMode || false
   }
 }

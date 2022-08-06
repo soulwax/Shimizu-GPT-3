@@ -139,7 +139,7 @@ const getStatusForGuildEmbed = async (guild) => {
   embed.setColor(`#00ab69`)
   embed.addField(`Completion mode: `, `${await getCompletionModeForGuild(guild.id)}`)
   embed.addField(`Raw mode: `, `${await getRawModeForGuild(guild.id)}`)
-  embed.addField(`My chance to respond randomly:`, `${await getChanceForGuild(guild.id)*100}%`)
+  embed.addField(`My chance to respond randomly:`, `${(await getChanceForGuild(guild.id)) * 100}%`)
   return embed
 }
 
@@ -158,7 +158,6 @@ const getMyselfForGuild = async (guildID) => {
     return myselfDefault
   }
   const myself = {
-    
     id: myselfDefault.id,
     name: myselfDefault.name,
     key: myselfDefault.key,
@@ -187,7 +186,6 @@ const getMyselfForGuild = async (guildID) => {
 }
 //#endregion Discord specific helper functions
 
-
 //#region ready event
 client.on(`ready`, async () => {
   console.log(`Logged in as ${client.user.tag}!`)
@@ -195,20 +193,19 @@ client.on(`ready`, async () => {
     `${myselfDefault.name} has started, with ${client.users.cache.size} users, in ${client.channels.cache.size} channels of ${client.guilds.cache.size} guilds.`
   )
   console.log(`\tVerbose Mode: ${VERBOSE}`)
-    // Set own description
+  // Set own description
   await client.user.setActivity(`with myself :pepe:`, { type: `PLAYING` })
   await client.user.setPresence(
     `Contribute to my code base here:
     https://github.com/soulwax/Shimizu-GPT-3
     You will need your own API keys for deployment!
     `
-    )
+  )
   //#region refresh guilds
   await syncGuildsWithDB(client, myselfDefault)
   //#endregion refresh guilds
 })
 //#endregion ready event
-
 
 //#region slash command events
 //#region experiment command
@@ -239,8 +236,6 @@ client.on('interactionCreate', async (interaction) => {
 })
 //#endregion ping command
 
-
-
 //#region shutup command
 // shutup = set chance to 0
 client.on('interactionCreate', async (interaction) => {
@@ -256,7 +251,6 @@ client.on('interactionCreate', async (interaction) => {
   }
 })
 //#endregion shutup command
-
 
 //#region reset command
 // reset = sets all guild variables to their default values
@@ -290,10 +284,13 @@ client.on('interactionCreate', async (interaction) => {
   if (!interaction.isCommand()) return
   if (interaction.commandName === `togglecompletion`) {
     // Toggle completion mode
-    await setCompletionModeForGuild(interaction.guild.id, !await getCompletionModeForGuild(interaction.guild.id))
+    const newValue = await setCompletionModeForGuild(
+      interaction.guild.id,
+      !(await getCompletionModeForGuild(interaction.guild.id))
+    )
     const embed = new MessageEmbed()
       .setTitle(`Completion mode toggled for ${interaction.guild.name}`)
-      .setDescription(`Completion mode is now: ${myselfDefault.options.completionMode}`)
+      .setDescription(`Completion mode is now: ${newValue}`)
       .setColor(`#23ff67`)
     await interaction.reply({ embeds: [embed] })
   }
@@ -308,13 +305,13 @@ client.on('interactionCreate', async (interaction) => {
     // Set the chance to respond to a specific value
     const integer = interaction.options.getInteger('integer')
     if (integer) {
-      await setChanceForGuild(interaction.guild.id, integer / 100)
+      const newValue = await setChanceForGuild(interaction.guild.id, integer / 100)
+      const embed = new MessageEmbed()
+        .setTitle(`Chance to respond for ${interaction.guild.name}`)
+        .setDescription(`Chance to respond is now: ${newValue}%`)
+        .setColor(`#11ffab`)
+      await interaction.reply({ embeds: [embed] })
     }
-    const embed = new MessageEmbed()
-      .setTitle(`Chance to respond for ${interaction.guild.name}`)
-      .setDescription(`Chance to respond is now: ${myselfDefault.options.chanceToRespond}%`)
-      .setColor(`#11ffab`)
-    await interaction.reply({ embeds: [embed] })
   }
 })
 //#endregion setchance command
@@ -357,10 +354,10 @@ client.on('interactionCreate', async (interaction) => {
   if (!interaction.isCommand()) return
   if (interaction.commandName === `togglerawmode`) {
     // Toggle raw mode
-    await setRawModeForGuild(interaction.guild.id, !await getRawModeForGuild(interaction.guild.id))
+    const newValue = await setRawModeForGuild(interaction.guild.id, !(await getRawModeForGuild(interaction.guild.id)))
     const embed = new MessageEmbed()
       .setTitle(`Raw mode toggled for ${interaction.guild.name}`)
-      .setDescription(`Raw mode is now: ${myselfDefault.options.rawMode}`)
+      .setDescription(`Raw mode is now: ${newValue}`)
       .setColor(`#23ff67`)
     await interaction.reply({ embeds: [embed] })
   }
@@ -376,21 +373,19 @@ client.on('messageCreate', async (message) => {
   console.log(`myself for ${guildID} is ${myself}`)
   const author = message.author.username
   let rawMessage = message.content
-  
+
   const chanceToRespond = myself.options.chanceToRespond
   const isCompletionMode = myself.options.completionMode
   const isRawMode = myself.options.rawMode
 
-
-  if(message.attachments.size > 0 && rawMessage.length <= 0) {
+  if (message.attachments.size > 0 && rawMessage.length <= 0) {
     const attachment = message.attachments.first()
     const attachmentURL = attachment.url
     rawMessage = attachmentURL
-    if(VERBOSE) console.log(`${author} sent a message with an attachment: ${rawMessage}`)
+    if (VERBOSE) console.log(`${author} sent a message with an attachment: ${rawMessage}`)
   }
 
-
-  if(VERBOSE) console.log(`${author} said: ${rawMessage}`)
+  if (VERBOSE) console.log(`${author} said: ${rawMessage}`)
   await addMessageToConversation(message, rawMessage) // add the post to the conversation
   // The bot will reply under the following conditions:
   // case 1: the bot is mentioned
@@ -411,7 +406,7 @@ client.on('messageCreate', async (message) => {
     message.channel.sendTyping() // otherwise, start typing
 
     let response = await getPrompt(isRawMode ? rawMessage : cleanedText, myself, author)
-    
+
     if (response === undefined) {
       // This case should technically never trigger
       // unless we send a faulty prompt
