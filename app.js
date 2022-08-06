@@ -133,13 +133,13 @@ const commands = [
 //#endregion REFRESH
 
 //#region Discord specific helper functions
-const getStatusForGuildEmbed = (guild) => {
+const getStatusForGuildEmbed = async (guild) => {
   const embed = new MessageEmbed()
   embed.setTitle(`My settings for ${guild.name}:`)
   embed.setColor(`#00ab69`)
-  embed.addField(`Completion mode: `, `${getCompletionModeForGuild(guild.id)}`)
-  embed.addField(`Raw mode: `, `${getRawModeForGuild(guild.id)}`)
-  embed.addField(`My chance to respond randomly:`, `${getChanceForGuild(guild.id)*100}%`)
+  embed.addField(`Completion mode: `, `${await getCompletionModeForGuild(guild.id)}`)
+  embed.addField(`Raw mode: `, `${await getRawModeForGuild(guild.id)}`)
+  embed.addField(`My chance to respond randomly:`, `${await getChanceForGuild(guild.id)*100}%`)
   return embed
 }
 
@@ -263,10 +263,10 @@ client.on('interactionCreate', async (interaction) => {
 client.on('interactionCreate', async (interaction) => {
   if (!interaction.isCommand()) return
   if (interaction.commandName === `reset`) {
-    setChanceForGuild(interaction.guild.id, myselfDefault.options.chanceToRespond)
-    setCompletionModeForGuild(interaction.guild.id, myselfDefault.options.completionMode)
-    setRawModeForGuild(interaction.guild.id, myselfDefault.options.rawMode)
-    const embed = getStatusForGuildEmbed(interaction.guild)
+    await setChanceForGuild(interaction.guild.id, myselfDefault.options.chanceToRespond)
+    await setCompletionModeForGuild(interaction.guild.id, myselfDefault.options.completionMode)
+    await setRawModeForGuild(interaction.guild.id, myselfDefault.options.rawMode)
+    const embed = await getStatusForGuildEmbed(interaction.guild)
     await interaction.reply({ embeds: [embed] })
   }
 })
@@ -278,7 +278,7 @@ client.on('interactionCreate', async (interaction) => {
   if (!interaction.isCommand()) return
   if (interaction.commandName === `status`) {
     // Report current status on variables
-    const embed = getStatusForGuildEmbed(interaction.guild)
+    const embed = await getStatusForGuildEmbed(interaction.guild)
     await interaction.reply({ embeds: [embed] })
   }
 })
@@ -290,7 +290,7 @@ client.on('interactionCreate', async (interaction) => {
   if (!interaction.isCommand()) return
   if (interaction.commandName === `togglecompletion`) {
     // Toggle completion mode
-    setCompletionModeForGuild(interaction.guild.id, !getCompletionModeForGuild(interaction.guild.id))
+    await setCompletionModeForGuild(interaction.guild.id, !await getCompletionModeForGuild(interaction.guild.id))
     const embed = new MessageEmbed()
       .setTitle(`Completion mode toggled for ${interaction.guild.name}`)
       .setDescription(`Completion mode is now: ${myselfDefault.options.completionMode}`)
@@ -308,7 +308,7 @@ client.on('interactionCreate', async (interaction) => {
     // Set the chance to respond to a specific value
     const integer = interaction.options.getInteger('integer')
     if (integer) {
-      setChanceForGuild(interaction.guild.id, integer / 100)
+      await setChanceForGuild(interaction.guild.id, integer / 100)
     }
     const embed = new MessageEmbed()
       .setTitle(`Chance to respond for ${interaction.guild.name}`)
@@ -357,7 +357,7 @@ client.on('interactionCreate', async (interaction) => {
   if (!interaction.isCommand()) return
   if (interaction.commandName === `togglerawmode`) {
     // Toggle raw mode
-    setRawModeForGuild(interaction.guild.id, !getRawModeForGuild(interaction.guild.id))
+    await setRawModeForGuild(interaction.guild.id, !await getRawModeForGuild(interaction.guild.id))
     const embed = new MessageEmbed()
       .setTitle(`Raw mode toggled for ${interaction.guild.name}`)
       .setDescription(`Raw mode is now: ${myselfDefault.options.rawMode}`)
@@ -373,6 +373,7 @@ client.on('messageCreate', async (message) => {
   if (message.author.bot) return
   const guildID = message.guild.id
   const myself = await getMyselfForGuild(guildID)
+  console.log(`myself for ${guildID} is ${myself}`)
   const author = message.author.username
   let rawMessage = message.content
   
@@ -430,9 +431,9 @@ client.on('messageCreate', async (message) => {
 //#endregion main message event
 
 //On discord bot shutdown
-client.on('disconnect', () => {
+client.on('disconnect', async () => {
   // Write back changes to the database
-  updateGuildVariables(guilds)
+  await updateGuildVariables(guilds)
   console.log('Disconnected')
 })
 
