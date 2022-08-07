@@ -1,7 +1,7 @@
 require('dotenv').config({ path: __dirname + '/.env' })
 const { cleanResultText } = require('./helper')
 const got = require('got')
-
+const VERBOSE = process.env.VERBOSE === 'true'
 
 const myselfDefault = {
   id: parseInt(process.env.MY_ID),
@@ -34,7 +34,7 @@ const myselfDefault = {
  * @param {String} prompt The prompt is a String that represents user input
  * for the openAI engine to understand, interpret and generate a response.
  * A typical prompt looks like this: "Human: What is your name?"
- * @param {Object} myself An Object that contains openAI credentials,
+ * @param {Object} guild An Object that contains openAI credentials,
  * identity in the form of a premise, tokens,
  * a verbose flag for debugging and the name of the AI.
  * The purpose of 'myself' is to summarise everything that the AI needs to know about herself to generate a response.
@@ -42,12 +42,12 @@ const myselfDefault = {
  * It is outputted as a reply to the user who posed the prompt.
  */
 
-const getPrompt = async (prompt, myself, callerName) => {
+const getPrompt = async (prompt, guild, callerName) => {
   
-  const rawMode = myself.options.rawMode
+  const rawMode = guild.myself.rawMode
+  const name = guild.myself.name
   const url = 'https://api.openai.com/v1/engines/davinci/completions'
-  const intro = `${myself.name} ${myself.premise}.`
-  //const primer = `${callerName}: Hello ${myself.name}!\n${myself.name}: Hello! What an awesome day!`
+  const intro = `${guild.myself.name} ${guild.premise}.`
   const message = `${callerName}: ${prompt}`
   let fullPrompt = ''
   if (!rawMode) {
@@ -57,33 +57,34 @@ const getPrompt = async (prompt, myself, callerName) => {
     //         "Shimizu: Hello! What an awesome day!"
     // message: "You: What is your name?"
     // "Shimizu: " ... AI generated response!
-    fullPrompt = `${intro}\n\n${message}\n${myself.name}:`
+    fullPrompt = `${intro}\n\n${message}\n${name}:`
   } else if (rawMode) {
     fullPrompt = prompt
   }
-  if (myself.verbose) {
+  if (VERBOSE) {
     console.log(`Sending ${rawMode ? 'RAW' : 'full'} prompt...\n${fullPrompt} `)
   }
   
+  // For now, the API call uses myselfDefault parameters.
   const params = {
     prompt: fullPrompt,
-    temperature: myself.options.openai.temperature,
-    max_tokens: myself.options.openai.tokens,
-    top_p: myself.options.openai.top_p,
-    frequency_penalty: myself.options.openai.frequency_penalty,
-    presence_penalty: myself.options.openai.presence_penalty,
-    stop: [`${callerName}:`, `${myself.name}:`, '\n\n', 'You:']
+    temperature: myselfDefault.options.openai.temperature,
+    max_tokens: myselfDefault.options.openai.tokens,
+    top_p: myselfDefault.options.openai.top_p,
+    frequency_penalty: myselfDefault.options.openai.frequency_penalty,
+    presence_penalty: myselfDefault.options.openai.presence_penalty,
+    stop: [`${callerName}:`, `${name}:`, '\n\n', 'You:']
   }
 
   const headers = {
-    Authorization: `Bearer ${myself.key}`
+    Authorization: `Bearer ${myselfDefault.key}`
   }
 
   try {
     const response = await got.post(url, { json: params, headers: headers }).json()
     output = `${response.choices[0].text}`
     const cleanedResultText = cleanResultText(output)
-    if (myself.verbose) {
+    if (VERBOSE) {
       console.log(`Cleaned Response:\n${cleanedResultText}`)
     }
     if(rawMode) return output

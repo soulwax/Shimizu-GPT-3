@@ -128,31 +128,7 @@ const getMyselfForGuild = async (guildID) => {
   if (!guild) {
     return myselfDefault
   }
-  const myself = {
-    id: myselfDefault.id,
-    name: myselfDefault.name,
-    key: myselfDefault.key,
-    intents: myselfDefault.intents,
-    verbose: myselfDefault.verbose,
-    options: {
-      completionMode: guild.chanceToRespond,
-      rawMode: guild.rawMode,
-      chanceToRespond: guild.completionMode,
-      openai: {
-        model: myselfDefault.options.openai.model,
-        temperature: myselfDefault.options.openai.temperature,
-        tokens: myselfDefault.options.openai.tokens,
-        top_p: myselfDefault.options.openai.top_p,
-        frequency_penalty: myselfDefault.options.openai.frequency_penalty,
-        presence_penalty: myselfDefault.options.openai.presence_penalty,
-        stop: myselfDefault.options.openai.stop
-      }
-    },
-    //TODO: make guild specific
-    premise: myselfDefault.premise,
-    whiteList: myselfDefault.whiteList,
-    blackList: myselfDefault.blackList
-  }
+  const myself = guild.myself
   return myself
 }
 //#endregion Discord specific helper functions
@@ -166,7 +142,7 @@ client.on(`ready`, async () => {
   console.log(`\tVerbose Mode: ${VERBOSE}`)
   // Set own description
   await client.user.setActivity(`with myself :pepe:`, { type: `PLAYING` })
-  await client.user.setPresence(
+  await client.user.setStatus(
     `Contribute to my code base here:
     https://github.com/soulwax/Shimizu-GPT-3
     You will need your own API keys for deployment!
@@ -340,13 +316,14 @@ client.on('interactionCreate', async (interaction) => {
 client.on('messageCreate', async (message) => {
   if (message.author.bot) return
   const guildID = message.guild.id
-  const myself = await getMyselfForGuild(guildID)
+  const guild = await getGuildCached(guildID)
+  const myself = await getMyselfForGuild(guildID) // this call is cached as well
   const author = message.author.username
   let rawMessage = message.content
 
-  const chanceToRespond = myself.options.chanceToRespond
-  const isCompletionMode = myself.options.completionMode
-  const isRawMode = myself.options.rawMode
+  const chanceToRespond = myself.chanceToRespond
+  const isCompletionMode = myself.completionMode
+  const isRawMode = myself.rawMode
 
   if (message.attachments.size > 0 && rawMessage.length <= 0) {
     const attachment = message.attachments.first()
@@ -376,7 +353,7 @@ client.on('messageCreate', async (message) => {
 
     message.channel.sendTyping() // otherwise, start typing
 
-    let response = await getPrompt(isRawMode ? rawMessage : cleanedText, myself, author)
+    let response = await getPrompt(isRawMode ? rawMessage : cleanedText, guild, author)
 
     if (response === undefined) {
       // This case should technically never trigger
