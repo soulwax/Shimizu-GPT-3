@@ -3,7 +3,30 @@ const { cleanResultText } = require('./helper')
 const got = require('got')
 
 
-
+const myselfDefault = {
+  id: parseInt(process.env.MY_ID),
+  name: process.env.MY_NAME,
+  key: process.env.OPENAI_API_KEY,
+  intents: process.env.MY_INTENTS.split(','),
+  verbose: process.env.VERBOSE === 'true' ? true : false,
+  options: {
+    completionMode: process.env.COMPLETION_MODE === 'true' ? true : false,
+    rawMode: process.env.RAW_MODE === 'true' ? true : false,
+    chanceToRespond: parseFloat(process.env.CHANCE_TO_RESPOND),
+    openai: {
+      model: process.env.AI_MODEL,
+      temperature: parseFloat(process.env.OPENAI_TEMPERATURE),
+      tokens: parseInt(process.env.MY_MAX_TOKENS),
+      top_p: parseFloat(process.env.TOP_P),
+      frequency_penalty: parseFloat(process.env.FREQUENCY_PENALTY),
+      presence_penalty: parseFloat(process.env.PRESENCE_PENALTY),
+      stop: process.env.MY_STOP.split(',')
+    }
+  },
+  premise: process.env.MY_PREMISE,
+  whiteList: process.env.WHITELIST.split(','),
+  blackList: process.env.BLACKLIST.split(',')
+}
 
 /**
  * A function that generates an AI response to a prompt by generating a RESTful API call to OpenAI
@@ -70,4 +93,4 @@ const getPrompt = async (prompt, myself, callerName) => {
   }
 }
 
-module.exports = { getPrompt }
+module.exports = { getPrompt, myselfDefault }

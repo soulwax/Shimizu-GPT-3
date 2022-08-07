@@ -3,7 +3,7 @@
  * - initialize environment variables and required modules
  * - - among them being two schemas for guilds and conversations
  * - connect to mongoDB database using a raw connection string
- * - initialize the myselfDefault object
+ * - initialize the ai / myself default object
  * - initialize the commands we want to use
  * - initialize the discord client and event loop
  * - define event handlers for the client
@@ -14,8 +14,6 @@
 require('dotenv').config({ path: __dirname + '/.env' })
 const TOKEN = process.env.DISCORD_TOKEN
 const VERBOSE = process.env.VERBOSE === 'true' ? true : false
-const WHITELIST = process.env.WHITELIST.split(',')
-const BLACKLIST = process.env.BLACKLIST.split(',')
 const DB_CONNECTION_STRING = process.env.DB_CONNECTION_STRING
 //#endregion enviroment variables
 
@@ -29,7 +27,7 @@ const { Client } = require(`discord.js`)
 const rest = new REST({ version: `9` }).setToken(TOKEN)
 //#region custom requires
 const { getRandom, replyMention, isChannelWhitelisted, isChannelBlacklisted, cleanText } = require('./helper.js')
-const { getPrompt } = require('./ai.js')
+const { getPrompt, myselfDefault } = require('./ai.js')
 // db requires
 const {
   syncGuildsWithDB,
@@ -42,7 +40,7 @@ const {
   getRawModeForGuild,
   addMessageToConversation,
   updateGuildVariables,
-  getGuild
+  getGuild: getGuildFromDB
 } = require('./db.js')
 //#endregion custom requires
 //#endregion requires
@@ -55,34 +53,6 @@ db.once(`open`, () => {
   console.log(`Connected to MongoDB`)
 })
 //#endregion mongoose
-
-//TODO: get rid of or place somewhere else
-//#region myselfDefault
-const myselfDefault = {
-  id: parseInt(process.env.MY_ID),
-  name: process.env.MY_NAME,
-  key: process.env.OPENAI_API_KEY,
-  intents: process.env.MY_INTENTS.split(','),
-  verbose: process.env.VERBOSE === 'true' ? true : false,
-  options: {
-    completionMode: process.env.COMPLETION_MODE === 'true' ? true : false,
-    rawMode: process.env.RAW_MODE === 'true' ? true : false,
-    chanceToRespond: parseFloat(process.env.CHANCE_TO_RESPOND),
-    openai: {
-      model: process.env.AI_MODEL,
-      temperature: parseFloat(process.env.OPENAI_TEMPERATURE),
-      tokens: parseInt(process.env.MY_MAX_TOKENS),
-      top_p: parseFloat(process.env.TOP_P),
-      frequency_penalty: parseFloat(process.env.FREQUENCY_PENALTY),
-      presence_penalty: parseFloat(process.env.PRESENCE_PENALTY),
-      stop: process.env.MY_STOP.split(',')
-    }
-  },
-  premise: process.env.MY_PREMISE,
-  whiteList: WHITELIST,
-  blackList: BLACKLIST
-}
-//#endregion myselfDefault
 
 //#region client
 const client = new Client({
@@ -143,11 +113,12 @@ const getStatusForGuildEmbed = async (guild) => {
   return embed
 }
 
-// Cache Guilds to prevent database queries by key being the guild id
+// Cache Guilds to prevent database queries
+// id => guild
 const guilds = {}
 const getGuildCached = async (id) => {
   if (guilds[id]) return guilds[id]
-  const guild = await getGuild(id)
+  const guild = await getGuildFromDB(id)
   guilds[id] = guild
   return guild
 }
@@ -370,7 +341,6 @@ client.on('messageCreate', async (message) => {
   if (message.author.bot) return
   const guildID = message.guild.id
   const myself = await getMyselfForGuild(guildID)
-  console.log(`myself for ${guildID} is ${myself}`)
   const author = message.author.username
   let rawMessage = message.content
 
@@ -386,6 +356,7 @@ client.on('messageCreate', async (message) => {
   }
 
   if (VERBOSE) console.log(`${author} said: ${rawMessage}`)
+  if (rawMessage === '') return
   await addMessageToConversation(message, rawMessage) // add the post to the conversation
   // The bot will reply under the following conditions:
   // case 1: the bot is mentioned
@@ -394,8 +365,8 @@ client.on('messageCreate', async (message) => {
   //         the random chance to respond was successful
   if (
     replyMention(message, client) ||
-    isChannelWhitelisted(message, WHITELIST) ||
-    (getRandom(chanceToRespond) && !isChannelBlacklisted(message, BLACKLIST))
+    isChannelWhitelisted(message, myselfDefault.whiteList) || // TODO: get from database
+    (getRandom(chanceToRespond) && !isChannelBlacklisted(message, myselfDefault.blackList))
   ) {
     // to work with the message, we need to clean it from discord's markdown
     // get rid of discord names and emojis

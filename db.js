@@ -64,7 +64,6 @@ const addMessageToConversation = async (message, content) => {
   const currentUserId = message.author.id
   const currentUserName = message.author.username
   const currentTimestamp = message.createdAt.toISOString()
-
   const conversation = await Conversation.findOne({ channelId: currentChannelId })
   if (conversation) {
     await conversation.conversation.push({
