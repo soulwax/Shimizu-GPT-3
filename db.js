@@ -1,4 +1,5 @@
 const mongoose = require('mongoose')
+const { myselfDefault } = require('./ai.js')
 const Guild = require('./models/guild.js')(mongoose)
 const Conversation = require('./models/conversation.js')(mongoose)
 
@@ -44,6 +45,46 @@ const syncGuildsWithDB = async (client, myself) => {
   }
 }
 
+// Cache Guilds to prevent database queries
+// id => guild
+const guilds = {}
+/** 
+ * Get the guild from the database.
+ * @param {string} guildID The ID of the guild to get.
+ * @returns {object} The guild object from the database.
+ * @returns {null} If the guild is not found in the database.
+*/
+const getGuildCached = async (id) => {
+  //TODO: cache with refresh if guild was changed
+  if (guilds[id]) return guilds[id]
+  const guild = await Guild.findOne({ guildId: id })
+  if (guild) {
+    guilds[id] = guild
+    return guild
+  }
+  return null
+}
+
+// update cached guilds when they are updated in the database
+const updateGuildCache = async (guild) => {
+  guilds[guild.id] = guild
+}
+
+const getMyselfForGuild = async (guildID) => {
+  const guild = await getGuildCached(guildID)
+  if (!guild) return myselfDefault
+  return guild.myself
+}
+
+/** 
+ * Get the guild from the database.
+ * @param {string} guildID The ID of the guild to get.
+ * @returns {object} The guild object from the database.
+*/
+const getGuild = async (guildID) => {
+  return await getGuildCached(guildID)
+}
+
 // Update guild values in the database given an array of guild objects
 const updateGuildVariables = async (guilds) => {
   for (let i = 0; i < guilds.length; i++) {
@@ -52,11 +93,17 @@ const updateGuildVariables = async (guilds) => {
     guildDBObject.myself.completionMode = guild.myself.completionMode
     guildDBObject.myself.chanceToRespond = guild.myself.chanceToRespond
     guildDBObject.myself.rawMode = guild.myself.rawMode
+    await updateGuildCache(guildDBObject)
     await guildDBObject.save()
   }
 }
 
 // Find the conversation for a specified guild and channel and add a message to it
+/**
+ * Add a message to the conversation for a specified guild and channel.
+ * @param {Object} message The message object used to extract the conversation data needed.
+ * @param {string} content The content of the message to add to the conversation.
+ */
 const addMessageToConversation = async (message, content) => {
   const currentGuildId = message.guild.id
   const currentGuildName = message.guild.name
@@ -101,14 +148,31 @@ const addMessageToConversation = async (message, content) => {
   }
 }
 
+ /** 
+  * Function that gets the conversation from the database and returns it
+  * @param {string} guildID - The ID of the guild to get the conversation for
+  * @param {string} channelID - The ID of the channel to get the conversation for
+  * @returns {object} - The conversation object
+  * @returns {null} - If no conversation was found
+  */
+
 const setChanceForGuild = async (guildID, chance) => {
   const guild = await getGuild(guildID)
   if(!guild) return
   guild.myself.chanceToRespond = chance
   await guild.save()
   console.log(`\tAdjusted chance for guild ${guildID} to ${chance} or ${chance * 100}%`)
-  return guild.myself.chanceToRespond // setting always returns the current value (for convenience)
+  await updateGuildCache(guild)
+  return guild.myself.chanceToRespond || null // setting always returns the current value (for convenience)
 }
+
+
+ /** 
+  * Function that gets the completion mode for a guild from the database and returns it
+  * @param {string} guildID - The ID of the guild to get the completion mode for
+  * @returns {String} - The completion mode
+  * @returns {null} - If no completion mode was found
+  */
 
 const setCompletionModeForGuild = async (guildID, mode) => {
   const guild = await getGuild(guildID)
@@ -116,22 +180,33 @@ const setCompletionModeForGuild = async (guildID, mode) => {
   guild.myself.completionMode = mode
   await guild.save()
   console.log(`\tAdjusted completion mode for guild ${guildID} to ${mode}`)
-  return guild.myself.completionMode // setting always returns the current value (for convenience)
+  await updateGuildCache(guild)
+  return guild.myself.completionMode || null // setting always returns the current value (for convenience)
 }
 
-const setRawModeForGuild = async (guildID, mode) => {
+
+  /**
+   * Function that sets the raw mode for a guild from the database and returns it
+   * @param {string} guildID - The ID of the guild to set the raw mode for
+   * @param {boolean} rawMode - The raw mode to set
+   * @returns {boolean} - The raw mode
+   * @returns {null} - If no raw mode was found
+   */
+const setRawModeForGuild = async (guildID, rawMode) => {
   const guild = await getGuild(guildID)
   if(!guild) return
-  guild.myself.rawMode = mode
+  guild.myself.rawMode = rawMode
   await guild.save()
-  if(VERBOSE) console.log(`\tAdjusted raw mode for guild ${guildID} to ${mode}`)
-  return guild.myself.rawMode // setting always returns the current value (for convenience)
+  console.log(`\tAdjusted raw mode for guild ${guildID} to ${rawMode}`)
+  await updateGuildCache(guild)
+  return guild.myself.rawMode || null // setting always returns the current value (for convenience)
 }
 
-// Function that gets the guild from the database and returns it
-const getGuild = async (guildID) => {
-  return await Guild.findOne({ guildId: guildID })
-}
+/**  Function that gets the guild from the database and returns it
+ * @param {string} guildID - The ID of the guild to get
+ * @returns {object} - The guild object
+ * @returns {null} - If no guild was found
+ */
 
 // Function that finds the conversation and guild from the database and returns the last 10 objects in the conversation
 // TODO: PROTOTYPE: USE AT YOUR OWN RISK!
@@ -159,7 +234,11 @@ const getConversation = async (guildID, channelID) => {
   })
 }
 
-// Get the chance to reply for a specified guild
+/** Get the chance to reply for a specified guild
+ * @param {string} guildID - The ID of the guild to get the chance for
+ * @returns {number} - The chance to reply
+ * @returns {0} - If no chance was found
+ */
 const getChanceForGuild = async (guildID) => {
   const guild = await getGuild(guildID)
   if (!guild) {
@@ -215,5 +294,6 @@ module.exports = {
   getRawModeForGuild,
   getChanceForGuild,
   getCompletionModeForGuild,
-  addMessageToConversation
+  addMessageToConversation,
+  getMyselfForGuild
 }

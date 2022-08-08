@@ -40,6 +40,7 @@ const {
   getRawModeForGuild,
   addMessageToConversation,
   updateGuildVariables,
+  getMyselfForGuild,
   getGuild: getGuildFromDB
 } = require('./db.js')
 //#endregion custom requires
@@ -112,25 +113,6 @@ const getStatusForGuildEmbed = async (guild) => {
   embed.addField(`My chance to respond randomly:`, `${(await getChanceForGuild(guild.id)) * 100}%`)
   return embed
 }
-
-// Cache Guilds to prevent database queries
-// id => guild
-const guilds = {}
-const getGuildCached = async (id) => {
-  if (guilds[id]) return guilds[id]
-  const guild = await getGuildFromDB(id)
-  guilds[id] = guild
-  return guild
-}
-
-const getMyselfForGuild = async (guildID) => {
-  const guild = await getGuildCached(guildID)
-  if (!guild) {
-    return myselfDefault
-  }
-  const myself = guild.myself
-  return myself
-}
 //#endregion Discord specific helper functions
 
 //#region ready event
@@ -141,13 +123,7 @@ client.on(`ready`, async () => {
   )
   console.log(`\tVerbose Mode: ${VERBOSE}`)
   // Set own description
-  await client.user.setActivity(`with myself :pepe:`, { type: `PLAYING` })
-  await client.user.setStatus(
-    `Contribute to my code base here:
-    https://github.com/soulwax/Shimizu-GPT-3
-    You will need your own API keys for deployment!
-    `
-  )
+  await client.user.setActivity(`https://github.com/soulwax/Shimizu-GPT-3`, { type: `PLAYING` })
   //#region refresh guilds
   await syncGuildsWithDB(client, myselfDefault)
   //#endregion refresh guilds
@@ -155,20 +131,6 @@ client.on(`ready`, async () => {
 //#endregion ready event
 
 //#region slash command events
-//#region experiment command
-//TODO: this is a placeholder command for things to come
-client.on('interactionCreate', async (interaction) => {
-  if (!interaction.isCommand()) return
-  if (interaction.commandName === `experiment`) {
-    // Start an experiment
-    const embed = new MessageEmbed()
-      .setTitle(`Start an experiment`)
-      .setDescription(`Start an experiment in this channel.`)
-      .setColor(`#abff33`)
-    await interaction.reply({ embeds: [embed] })
-  }
-})
-//#endregion experiment command
 
 //#region ping command
 client.on('interactionCreate', async (interaction) => {
@@ -244,6 +206,23 @@ client.on('interactionCreate', async (interaction) => {
 })
 //#endregion togglecompletion command
 
+//#region command raw mode
+// togglerawmode = toggle raw mode
+client.on('interactionCreate', async (interaction) => {
+  if (!interaction.isCommand()) return
+  if (interaction.commandName === `togglerawmode`) {
+    // Toggle raw mode
+    const newValue = await setRawModeForGuild(interaction.guild.id, !(await getRawModeForGuild(interaction.guild.id)))
+    const embed = new MessageEmbed()
+      .setTitle(`Raw mode toggled for ${interaction.guild.name}`)
+      .setDescription(`Raw mode is now: ${newValue}`)
+      .setColor(`#23ff67`)
+    await interaction.reply({ embeds: [embed] })
+  }
+})
+//#endregion command raw mode
+
+
 //#region setchance command
 // setchance = set chance to a specific value in %
 client.on('interactionCreate', async (interaction) => {
@@ -255,7 +234,7 @@ client.on('interactionCreate', async (interaction) => {
       const newValue = await setChanceForGuild(interaction.guild.id, integer / 100)
       const embed = new MessageEmbed()
         .setTitle(`Chance to respond for ${interaction.guild.name}`)
-        .setDescription(`Chance to respond is now: ${newValue*100}%`)
+        .setDescription(`Chance to respond is now: ${newValue * 100}%`)
         .setColor(`#11ffab`)
       await interaction.reply({ embeds: [embed] })
     }
@@ -293,30 +272,13 @@ client.on('interactionCreate', async (interaction) => {
   }
 })
 //#endregion help command
-//#endregion commands
-
-//#region command raw mode
-// togglerawmode = toggle raw mode
-client.on('interactionCreate', async (interaction) => {
-  if (!interaction.isCommand()) return
-  if (interaction.commandName === `togglerawmode`) {
-    // Toggle raw mode
-    const newValue = await setRawModeForGuild(interaction.guild.id, !(await getRawModeForGuild(interaction.guild.id)))
-    const embed = new MessageEmbed()
-      .setTitle(`Raw mode toggled for ${interaction.guild.name}`)
-      .setDescription(`Raw mode is now: ${newValue}`)
-      .setColor(`#23ff67`)
-    await interaction.reply({ embeds: [embed] })
-  }
-})
-//#endregion command raw mode
 //#endregion slash command events
 
 //#region main message event
 client.on('messageCreate', async (message) => {
   if (message.author.bot) return
   const guildID = message.guild.id
-  const guild = await getGuildCached(guildID)
+  const guild = await getGuildFromDB(guildID, false)
   const myself = await getMyselfForGuild(guildID) // this call is cached as well
   const author = message.author.username
   let rawMessage = message.content
@@ -324,7 +286,7 @@ client.on('messageCreate', async (message) => {
   const chanceToRespond = myself.chanceToRespond
   const isCompletionMode = myself.completionMode
   const isRawMode = myself.rawMode
-
+  
   if (message.attachments.size > 0 && rawMessage.length <= 0) {
     const attachment = message.attachments.first()
     const attachmentURL = attachment.url
