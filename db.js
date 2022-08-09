@@ -3,6 +3,12 @@ const { myselfDefault } = require('./ai.js')
 const Guild = require('./models/guild.js')(mongoose)
 const Conversation = require('./models/conversation.js')(mongoose)
 
+/**
+ * Function that syncs guilds between client and database
+ * @param {Object} client - The discord client object
+ * @param {Object} myself - The myself object (manually set)
+ * @returns {Boolean} frue if the sync was successful, false if it failed
+ */ 
 const syncGuildsWithDB = async (client, myself) => {
   const guilds = await client.guilds.cache.map((guild) => guild.name)
   const guildIDs = await client.guilds.cache.map((guild) => guild.id)
@@ -40,7 +46,13 @@ const syncGuildsWithDB = async (client, myself) => {
           rawMode: myself.options.rawMode
         }
       })
-      await guildDBObject.save()
+      await guildDBObject.save().then(() => {
+        console.log(`\t\tGuilds were successfully saved to the database if they didn't exist yet`)
+        return true
+      }).catch((err) => {
+        console.log(err)
+        return false
+      })
     }
   }
 }
