@@ -252,8 +252,7 @@ client.on('interactionCreate', async (interaction) => {
       .setTitle(`Commands`)
       .setDescription(
         `
-      **@${client.user.username}** guaranteed response to your message.
-      **/experiment** - Start an experiment.
+      **@${client.user.username}**: guaranteed response to your message.
       **/help** - List of commands.
       **/ping** - Measures the response time of the bot.
       **/reset** - Reset the chance to respond to 5%.
