@@ -8,13 +8,33 @@ module.exports = (mongoose) => {
             type: String,
             required: true
         },
-        model: {
-            type: String,
-            default: 'text-davinci-002'
-        },
         apiKey: {
             type: String,
             required: true
+        },
+        intents: {
+            type: [String],
+            required: true
+        },
+        verbose: {
+            type: Boolean,
+            required: true
+        },
+        completionMode: {
+            type: Boolean,
+            required: true
+        },
+        rawMode: {
+            type: Boolean,
+            required: true
+        },
+        chanceToRespond: {
+            type: Number,
+            required: true
+        },
+        model: {
+            type: String,
+            default: 'text-davinci-002'
         },
         temperature: {
             type: Number,
@@ -22,6 +42,13 @@ module.exports = (mongoose) => {
             max: 1,
             required: true,
             default: 0.5
+        },
+        tokens: {
+            type: Number,
+            min: 0,
+            max: 2000,
+            required: true,
+            default: 360
         },
         top_p: {
             type: Number,
@@ -49,22 +76,18 @@ module.exports = (mongoose) => {
             required: true,
             default: ['Shimizu', '\n']
         },
-        chanceToRespond: {
-            type: Number,
-            min: 0,
-            max: 1,
+        premise: {
+            type: String,
             required: true,
-            default: 0.05
+            default: 'I am a robot.'
         },
-        rawMode: {
-            type: Boolean,
-            required: true,
-            default: false
+        whiteList: {
+            type: [String],
+            required: true
         },
-        completionMode: {
-            type: Boolean,
-            required: true,
-            default: false
+        blackList: {
+            type: [String],
+            required: true
         }
     });
     return mongoose.model('Myself', myselfSchema);
