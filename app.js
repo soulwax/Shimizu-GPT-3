@@ -166,9 +166,9 @@ client.on('interactionCreate', async (interaction) => {
 client.on('interactionCreate', async (interaction) => {
   if (!interaction.isCommand()) return
   if (interaction.commandName === `reset`) {
-    await setChanceForGuild(interaction.guild.id, myselfDefault.options.chanceToRespond)
-    await setCompletionModeForGuild(interaction.guild.id, myselfDefault.options.completionMode)
-    await setRawModeForGuild(interaction.guild.id, myselfDefault.options.rawMode)
+    await setChanceForGuild(interaction.guild.id, myselfDefault.chanceToRespond)
+    await setCompletionModeForGuild(interaction.guild.id, myselfDefault.completionMode)
+    await setRawModeForGuild(interaction.guild.id, myselfDefault.rawMode)
     const embed = await getStatusForGuildEmbed(interaction.guild)
     await interaction.reply({ embeds: [embed] })
   }

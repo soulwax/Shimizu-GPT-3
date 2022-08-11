@@ -31,20 +31,7 @@ const syncGuildsWithDB = async (client, myself) => {
         premise: myself.premise,
         whitelistedChannels: myself.whiteList,
         blacklistedChannels: myself.blackList,
-        myself: {
-          myId: myself.id,
-          name: myself.name,
-          model: myself.options.openai.model,
-          apiKey: myself.key,
-          temperature: myself.options.openai.temperature,
-          top_p: myself.options.openai.top_p,
-          frequency_penalty: myself.options.openai.frequency_penalty,
-          presence_penalty: myself.options.openai.presence_penalty,
-          stop: myself.options.openai.stop,
-          completionMode: myself.options.completionMode,
-          chanceToRespond: myself.options.chanceToRespond,
-          rawMode: myself.options.rawMode
-        }
+        myself: myself
       })
       await guildDBObject.save().then(() => {
         console.log(`\t\tGuilds were successfully saved to the database if they didn't exist yet`)

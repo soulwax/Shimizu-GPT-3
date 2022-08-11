@@ -9,20 +9,16 @@ const myselfDefault = {
   key: process.env.OPENAI_API_KEY,
   intents: process.env.MY_INTENTS.split(','),
   verbose: process.env.VERBOSE === 'true' ? true : false,
-  options: {
-    completionMode: process.env.COMPLETION_MODE === 'true' ? true : false,
-    rawMode: process.env.RAW_MODE === 'true' ? true : false,
-    chanceToRespond: parseFloat(process.env.CHANCE_TO_RESPOND),
-    openai: {
-      model: process.env.AI_MODEL,
-      temperature: parseFloat(process.env.OPENAI_TEMPERATURE),
-      tokens: parseInt(process.env.MY_MAX_TOKENS),
-      top_p: parseFloat(process.env.TOP_P),
-      frequency_penalty: parseFloat(process.env.FREQUENCY_PENALTY),
-      presence_penalty: parseFloat(process.env.PRESENCE_PENALTY),
-      stop: process.env.MY_STOP.split(',')
-    }
-  },
+  completionMode: process.env.COMPLETION_MODE === 'true' ? true : false,
+  rawMode: process.env.RAW_MODE === 'true' ? true : false,
+  chanceToRespond: parseFloat(process.env.CHANCE_TO_RESPOND),
+  model: process.env.AI_MODEL,
+  temperature: parseFloat(process.env.OPENAI_TEMPERATURE),
+  tokens: parseInt(process.env.MY_MAX_TOKENS),
+  top_p: parseFloat(process.env.TOP_P),
+  frequency_penalty: parseFloat(process.env.FREQUENCY_PENALTY),
+  presence_penalty: parseFloat(process.env.PRESENCE_PENALTY),
+  stop: process.env.MY_STOP.split(','),
   premise: process.env.MY_PREMISE,
   whiteList: process.env.WHITELIST.split(','),
   blackList: process.env.BLACKLIST.split(',')
@@ -43,7 +39,6 @@ const myselfDefault = {
  */
 
 const getPrompt = async (prompt, guild, callerName) => {
-  
   const rawMode = guild.myself.rawMode
   const name = guild.myself.name
   const url = 'https://api.openai.com/v1/engines/davinci/completions'
@@ -64,7 +59,7 @@ const getPrompt = async (prompt, guild, callerName) => {
   if (VERBOSE) {
     console.log(`Sending ${rawMode ? 'RAW' : 'full'} prompt...\n${fullPrompt} `)
   }
-  
+
   // For now, the API call uses myselfDefault parameters.
   const params = {
     prompt: fullPrompt,
@@ -87,7 +82,7 @@ const getPrompt = async (prompt, guild, callerName) => {
     if (VERBOSE) {
       console.log(`Cleaned Response:\n${cleanedResultText}`)
     }
-    if(rawMode) return output
+    if (rawMode) return output
     else return cleanedResultText
   } catch (err) {
     console.log(err)
