@@ -313,8 +313,8 @@ client.on('messageCreate', async (message) => {
     const lastMessages = conversation.slice(Math.max(conversation.length - 5, 0))
     
     if(VERBOSE) {
-      for(let i = 0; i < last5Messages.length; i++) {
-        console.log(`${last5Messages[i].author.username}: ${last5Messages[i].content}`)
+      for(let i = 0; i < lastMessages.length; i++) {
+        console.log(`${lastMessages[i].author.username}: ${lastMessages[i].content}`)
       }
     }
 
