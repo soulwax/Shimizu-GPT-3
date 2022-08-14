@@ -48,6 +48,15 @@ module.exports = (mongoose) => {
   })
 
   //TODO: define helper functions for the conversation model
+  conversationSchema.methods.getConversationByChannelID = function (channelId) {
+    return this.model('Conversation').findOne({ channelId: channelId })
+  }
+  conversationSchema.methods.getLastMessagesInChannel = function (channelId, limit) {
+    return this.model('Conversation').findOne({ channelId: channelId })
+      .then(conversation => {
+        return conversation.conversation.slice(0, limit)
+      })
+  }
 
   return mongoose.model('Conversation', conversationSchema)
 }
