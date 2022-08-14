@@ -281,8 +281,8 @@ client.on('messageCreate', async (message) => {
   const myself = await getMyselfForGuild(guildID) // this call is cached as well
   const author = message.author.username
   let rawMessage = message.content
-
   const chanceToRespond = myself.chanceToRespond
+  const calculatedChance = getRandom(chanceToRespond)
   const isCompletionMode = myself.completionMode
   const isRawMode = myself.rawMode
   
@@ -302,9 +302,9 @@ client.on('messageCreate', async (message) => {
   // case 3: the message received was not in a blacklisted channel and
   //         the random chance to respond was successful
   if (
-    replyMention(message, client) ||
+    (replyMention(message, client) && chanceToRespond > 0) ||
     isChannelWhitelisted(message, myselfDefault.whiteList) || // TODO: get from database
-    (getRandom(chanceToRespond) && !isChannelBlacklisted(message, myselfDefault.blackList))
+    (calculatedChance && !isChannelBlacklisted(message, myselfDefault.blackList))
   ) {
     // to work with the message, we need to clean it from discord's markdown
     // get rid of discord names and emojis
@@ -333,6 +333,19 @@ client.on('messageCreate', async (message) => {
   }
 })
 //#endregion main message event
+
+// When invited to a guild, join the guild and add the guild to the database
+client.on('guildCreate', async (guild) => {
+  await addGuildToDB(guild.id)
+  await addMyselfToGuild(guild.id)
+  await addChannelWhitelistToGuild(guild.id, myselfDefault.whiteList)
+  await addChannelBlacklistToGuild(guild.id, myselfDefault.blackList)
+  await addCompletionModeToGuild(guild.id, false)
+  await addRawModeToGuild(guild.id, false)
+  await addChanceToRespondToGuild(guild.id, 0.05)
+  await addConversationToGuild(guild.id, [])
+})
+
 
 //On discord bot shutdown
 client.on('disconnect', async () => {

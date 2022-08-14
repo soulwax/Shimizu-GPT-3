@@ -41,7 +41,7 @@ const myselfDefault = {
 const getPrompt = async (prompt, guild, callerName) => {
   const rawMode = guild.myself.rawMode
   const name = guild.myself.name
-  const url = 'https://api.openai.com/v1/engines/davinci/completions'
+  const url = 'https://api.openai.com/v1/engines/babbage/completions'
   const intro = `${guild.myself.name} ${guild.premise}.`
   const message = `${callerName}: ${prompt}`
   let fullPrompt = ''
@@ -63,11 +63,11 @@ const getPrompt = async (prompt, guild, callerName) => {
   // For now, the API call uses myselfDefault parameters.
   const params = {
     prompt: fullPrompt,
-    temperature: myselfDefault.options.openai.temperature,
-    max_tokens: myselfDefault.options.openai.tokens,
-    top_p: myselfDefault.options.openai.top_p,
-    frequency_penalty: myselfDefault.options.openai.frequency_penalty,
-    presence_penalty: myselfDefault.options.openai.presence_penalty,
+    temperature: myselfDefault.temperature,
+    max_tokens: myselfDefault.tokens,
+    top_p: myselfDefault.top_p,
+    frequency_penalty: myselfDefault.frequency_penalty,
+    presence_penalty: myselfDefault.presence_penalty,
     stop: [`${callerName}:`, `${name}:`, '\n\n', 'You:']
   }
 
