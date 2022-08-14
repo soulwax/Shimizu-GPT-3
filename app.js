@@ -306,6 +306,18 @@ client.on('messageCreate', async (message) => {
     isChannelWhitelisted(message, myselfDefault.whiteList) || // TODO: get from database
     (calculatedChance && !isChannelBlacklisted(message, myselfDefault.blackList))
   ) {
+
+    // Get the last 5 messages from the database of the conversation ordered by timestamp
+    // Testing purposes!
+    const conversation = await getConversationFromDB(message.channel.id)
+    const lastMessages = conversation.slice(Math.max(conversation.length - 5, 0))
+    
+    if(VERBOSE) {
+      for(let i = 0; i < last5Messages.length; i++) {
+        console.log(`${last5Messages[i].author.username}: ${last5Messages[i].content}`)
+      }
+    }
+
     // to work with the message, we need to clean it from discord's markdown
     // get rid of discord names and emojis
     // ? is this really necessary?
