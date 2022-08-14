@@ -31,7 +31,7 @@ const { getPrompt, myselfDefault } = require('./ai.js')
 // db requires
 const {
   syncGuildsWithDB,
-  getConversation,
+  getConversation: getConversationFromDB,
   setChanceForGuild,
   setCompletionModeForGuild,
   setRawModeForGuild,

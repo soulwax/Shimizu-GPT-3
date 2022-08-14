@@ -8,7 +8,7 @@ const Conversation = require('./models/conversation.js')(mongoose)
  * @param {Object} client - The discord client object
  * @param {Object} myself - The myself object (manually set)
  * @returns {Boolean} frue if the sync was successful, false if it failed
- */ 
+ */
 const syncGuildsWithDB = async (client, myself) => {
   const guilds = await client.guilds.cache.map((guild) => guild.name)
   const guildIDs = await client.guilds.cache.map((guild) => guild.id)
@@ -33,13 +33,16 @@ const syncGuildsWithDB = async (client, myself) => {
         blacklistedChannels: myself.blackList,
         myself: myself
       })
-      await guildDBObject.save().then(() => {
-        console.log(`\t\tGuilds were successfully saved to the database if they didn't exist yet`)
-        return true
-      }).catch((err) => {
-        console.log(err)
-        return false
-      })
+      await guildDBObject
+        .save()
+        .then(() => {
+          console.log(`\t\tGuilds were successfully saved to the database if they didn't exist yet`)
+          return true
+        })
+        .catch((err) => {
+          console.log(err)
+          return false
+        })
     }
   }
 }
@@ -63,7 +66,6 @@ const getGuildCached = async (id) => {
   }
   return null
 }
-
 
 /**
  * Update the guild cache with the given guild object.
@@ -166,12 +168,10 @@ const addMessageToConversation = async (message, content) => {
         console.log(`\tCreated conversation for ${currentGuildName} in ${currentChannelId}`)
         return true
       })
-      .catch(
-        (err) => {
-          console.log(err)
-          return false
-        }
-      )
+      .catch((err) => {
+        console.log(err)
+        return false
+      })
   }
 }
 
@@ -231,27 +231,18 @@ const setRawModeForGuild = async (guildID, rawMode) => {
  * @returns {null} - If no guild was found
  */
 const getConversation = async (guildID, channelID) => {
-  await Guild.findOne({ guildId: guildID }, (err, guild) => {
+  Conversation.find({ guildID: guildID, channelID: channelID }, (err, convo) => {
     if (err) {
       console.error(err)
-    } else if (!guild) {
-      console.log(`\t${guildID} not found in the database.`)
+    } else if (!convo) {
+      console.log(`\t${channelID} not found in the database.`)
     } else {
-      console.log(`\t${guild.guildName} found in the database.`)
-      Conversation.find({ guildID: guildID, channelID: channelID }, (err, convo) => {
-        if (err) {
-          console.error(err)
-        } else if (!convo) {
-          console.log(`\t${channelID} not found in the database.`)
-        } else {
-          console.log(`\t${channelID} found in the database.`)
-          return convo
-        }
-      })
-        .sort({ _id: -1 })
-        .limit(10)
+      console.log(`\t${channelID} found in the database.`)
+      return convo
     }
   })
+    .sort({ _id: -1 })
+    .limit(10)
 }
 
 /** Get the chance to reply for a specified guild
@@ -272,7 +263,6 @@ const getChanceForGuild = async (guildID) => {
     return guild.myself.chanceToRespond || 0
   }
 }
-
 
 /**
  * Function that gets the completion mode for a guild from the database and returns it
