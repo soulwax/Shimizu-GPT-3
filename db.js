@@ -231,18 +231,9 @@ const setRawModeForGuild = async (guildID, rawMode) => {
  * @returns {null} - If no guild was found
  */
 const getConversation = async (guildID, channelID) => {
-  Conversation.find({ guildID: guildID, channelID: channelID }, (err, convo) => {
-    if (err) {
-      console.error(err)
-    } else if (!convo) {
-      console.log(`\t${channelID} not found in the database.`)
-    } else {
-      console.log(`\t${channelID} found in the database.`)
-      return convo
-    }
-  })
-    .sort({ _id: -1 })
-    .limit(10)
+  const convo = await Conversation.find({ guildID: guildID, channelID: channelID })
+  if (!convo) return
+  return convo
 }
 
 /** Get the chance to reply for a specified guild

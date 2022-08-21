@@ -309,14 +309,8 @@ client.on('messageCreate', async (message) => {
 
     // Get the last 5 messages from the database of the conversation ordered by timestamp
     // Testing purposes!
-    const conversation = await getConversationFromDB(message.channel.id)
-    const lastMessages = conversation.slice(Math.max(conversation.length - 5, 0))
-    
-    if(VERBOSE) {
-      for(let i = 0; i < lastMessages.length; i++) {
-        console.log(`${lastMessages[i].author.username}: ${lastMessages[i].content}`)
-      }
-    }
+    //const conversation = await getConversationFromDB(message.channel.id)
+    //console.log(conversation.getLastMessagesInChannel(message.channel.i, 5))
 
     // to work with the message, we need to clean it from discord's markdown
     // get rid of discord names and emojis
