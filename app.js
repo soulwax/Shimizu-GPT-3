@@ -19,7 +19,7 @@ const DB_CONNECTION_STRING = process.env.DB_CONNECTION_STRING
 
 //#region requires
 const mongoose = require(`mongoose`)
-const { MessageEmbed } = require(`discord.js`)
+const { MessageEmbed, Guild } = require(`discord.js`)
 const { SlashCommandBuilder } = require(`@discordjs/builders`)
 const { REST } = require(`@discordjs/rest`)
 const { Routes } = require(`discord-api-types/v9`)
@@ -80,6 +80,7 @@ const commands = [
         .setMinValue(0)
         .setMaxValue(100)
     }),
+  new SlashCommandBuilder().setName('whitelist').setDescription('Whitelists a channel.'),
   new SlashCommandBuilder().setName('togglecompletion').setDescription('Toggles the completion mode.'),
   new SlashCommandBuilder()
     .setName('togglerawmode')
@@ -123,7 +124,7 @@ client.on(`ready`, async () => {
   )
   console.log(`\tVerbose Mode: ${VERBOSE}`)
   // Set own description
-  await client.user.setActivity(`https://github.com/soulwax/Shimizu-GPT-3`, { type: `PLAYING` })
+  // empty fn
   //#region refresh guilds
   await syncGuildsWithDB(client, myselfDefault)
   //#endregion refresh guilds
@@ -242,6 +243,31 @@ client.on('interactionCreate', async (interaction) => {
 })
 //#endregion setchance command
 
+//#region whitelist command
+// whitelist = add a user to the whitelist
+client.on('interactionCreate', async (interaction) => {
+  if (!interaction.isCommand()) return
+  if (interaction.commandName === `whitelist`) {
+    // Add the channel the command was sent in to the whitelist
+    // Get channel id from interaction
+    const channel = interaction.options.getChannel('channel')
+    if (channel) {
+      // find Guild in DB
+      const guild = await Guild.findOne({ guildID: interaction.guild.id })
+      // Add channel to whitelist
+      await guild.addChannelToWhitelist(channel.id)
+      // Save guild
+      await guild.save()
+      // Reply to interaction
+      const embed = new MessageEmbed()
+        .setTitle(`Whitelist for ${interaction.guild.name}`)
+        .setDescription(`Channel ${channel.name} was added to the whitelist.`)
+        .setColor(`#11ffab`)
+      await interaction.reply({ embeds: [embed] })
+    }
+  }
+})
+
 //#region help command
 // help = list of commands
 client.on('interactionCreate', async (interaction) => {
@@ -309,14 +335,8 @@ client.on('messageCreate', async (message) => {
 
     // Get the last 5 messages from the database of the conversation ordered by timestamp
     // Testing purposes!
-    const conversation = await getConversationFromDB(message.channel.id)
-    const lastMessages = conversation.slice(Math.max(conversation.length - 5, 0))
-    
-    if(VERBOSE) {
-      for(let i = 0; i < lastMessages.length; i++) {
-        console.log(`${lastMessages[i].author.username}: ${lastMessages[i].content}`)
-      }
-    }
+    //const conversation = await getConversationFromDB(message.channel.id)
+    //console.log(conversation.getLastMessagesInChannel(message.channel.i, 5))
 
     // to work with the message, we need to clean it from discord's markdown
     // get rid of discord names and emojis

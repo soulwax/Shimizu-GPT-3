@@ -48,6 +48,21 @@ module.exports = (mongoose) => {
   })
 
   //TODO: define helper functions for the conversation model
+  conversationSchema.methods.getConversationByChannelID = async function (channelId) {
+    return await this.model('Conversation').findOne({ channelId: channelId })
+  }
+  conversationSchema.methods.getLastMessagesInChannel = async function (channelId, limit) {
+    await this.model('Conversation').findOne({ channelId: channelId })
+      .then(conversation => {
+        // Return the last messages in the conversation sorted by timestamp
+        return conversation.conversation.messages.sort((a, b) => {
+          return a.timestamp - b.timestamp
+        }
+        ).slice(0, limit)
+      }).catch(err => {
+        console.log(err)
+      })
+  }
 
   return mongoose.model('Conversation', conversationSchema)
 }

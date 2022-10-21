@@ -27,11 +27,24 @@ const syncGuildsWithDB = async (client, myself) => {
         guildId: iteratedGuildId,
         name: iteratedGuildName,
         joinedAt: client.guilds.cache.get(iteratedGuildId).joinedAt.toISOString(),
-        tokens: myself.options.openai.tokens,
+        tokens: myself.tokens,
         premise: myself.premise,
         whitelistedChannels: myself.whiteList,
         blacklistedChannels: myself.blackList,
-        myself: myself
+        myself: {
+          myId: myself.id,
+          name: myself.name,
+          model:  myself.model,
+          apiKey: myself.key,
+          temperature: myself.temperature,
+          top_p: myself.top_p,
+          frequency_penalty: myself.frequency_penalty,
+          presence_penalty: myself.presence_penalty,
+          stop: myself.stop,
+          chanceToRespond: myself.chanceToRespond,
+          rawMode: myself.rawMode,
+          completionMode: myself.completionMode,
+        }
       })
       await guildDBObject
         .save()
@@ -231,18 +244,9 @@ const setRawModeForGuild = async (guildID, rawMode) => {
  * @returns {null} - If no guild was found
  */
 const getConversation = async (guildID, channelID) => {
-  Conversation.find({ guildID: guildID, channelID: channelID }, (err, convo) => {
-    if (err) {
-      console.error(err)
-    } else if (!convo) {
-      console.log(`\t${channelID} not found in the database.`)
-    } else {
-      console.log(`\t${channelID} found in the database.`)
-      return convo
-    }
-  })
-    .sort({ _id: -1 })
-    .limit(10)
+  const convo = await Conversation.find({ guildID: guildID, channelID: channelID })
+  if (!convo) return
+  return convo
 }
 
 /** Get the chance to reply for a specified guild

@@ -41,7 +41,7 @@ const myselfDefault = {
 const getPrompt = async (prompt, guild, callerName) => {
   const rawMode = guild.myself.rawMode
   const name = guild.myself.name
-  const url = 'https://api.openai.com/v1/engines/babbage/completions'
+  const url = 'https://api.openai.com/v1/engines/davinci/completions'
   const intro = `${guild.myself.name} ${guild.premise}.`
   const message = `${callerName}: ${prompt}`
   let fullPrompt = ''

@@ -74,7 +74,10 @@ module.exports = (mongoose) => {
   })
 
   const Guild = mongoose.model('Guild', guildSchema)
-
+  Guild.prototype.addChannelToWhitelist = async function (channelID) {
+    this.whitelistedChannels.push(channelID)
+    return await this.save()
+  }
   
   return Guild
 }
