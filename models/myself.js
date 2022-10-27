@@ -88,6 +88,9 @@ module.exports = (mongoose) => {
         blackList: {
             type: [String],
             required: true
+        },
+        image: {
+            type: [Binary_Data],
         }
     });
     return mongoose.model('Myself', myselfSchema);
