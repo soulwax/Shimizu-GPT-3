@@ -307,6 +307,16 @@ const getRawModeForGuild = async (guildID) => {
   }
 }
 
+// Set whitelisted channel for guild by ID
+const setWhitelistedChannelForGuild = async (guildID, channelID) => {
+  const guild = await getGuild(guildID)
+  if (!guild) return
+  await guild.addChannelToWhitelist(channelID)
+  console.log(`\tAdded channel ${channelID} to whitelist for guild ${guildID}`)
+  await updateGuildCache(guild)
+  return guild.myself.whitelistedChannels || null // setting always returns the current value (for convenience)
+}
+
 module.exports = {
   syncGuildsWithDB,
   getGuild,
@@ -319,5 +329,6 @@ module.exports = {
   getChanceForGuild,
   getCompletionModeForGuild,
   addMessageToConversation,
-  getMyselfForGuild
+  getMyselfForGuild,
+  setWhitelistedChannelForGuild
 }

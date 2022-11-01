@@ -41,7 +41,8 @@ const {
   addMessageToConversation,
   updateGuildVariables,
   getMyselfForGuild,
-  getGuild: getGuildFromDB
+  getGuild: getGuildFromDB,
+  setWhitelistedChannelForGuild: setWL
 } = require('./db.js')
 //#endregion custom requires
 //#endregion requires
@@ -231,8 +232,9 @@ client.on('interactionCreate', async (interaction) => {
   if (interaction.commandName === `setchance`) {
     // Set the chance to respond to a specific value
     const integer = interaction.options.getInteger('integer')
-    if (integer) {
-      const newValue = await setChanceForGuild(interaction.guild.id, integer / 100)
+    if (integer >= 0 && integer <= 100) {
+      console.log(`Setting chance to ${integer}%`)
+      const newValue = await setChanceForGuild(interaction.guild.id, integer > 0 ? integer / 100 : 0)
       const embed = new MessageEmbed()
         .setTitle(`Chance to respond for ${interaction.guild.name}`)
         .setDescription(`Chance to respond is now: ${newValue * 100}%`)
@@ -250,14 +252,10 @@ client.on('interactionCreate', async (interaction) => {
   if (interaction.commandName === `whitelist`) {
     // Add the channel the command was sent in to the whitelist
     // Get channel id from interaction
-    const channel = interaction.options.getChannel('channel')
+    const channel = interaction.channel.id
     if (channel) {
       // find Guild in DB
-      const guild = await Guild.findOne({ guildID: interaction.guild.id })
-      // Add channel to whitelist
-      await guild.addChannelToWhitelist(channel.id)
-      // Save guild
-      await guild.save()
+      const guild = await setWL(interaction.guild.id, channel)
       // Reply to interaction
       const embed = new MessageEmbed()
         .setTitle(`Whitelist for ${interaction.guild.name}`)
@@ -287,6 +285,7 @@ client.on('interactionCreate', async (interaction) => {
       **/setchance** - Sets the chance to respond to a certain percentage.
       **/togglecompletion** - Toggles the completion mode.
       **/togglerawmode** - Toggles the raw mode. The prompt will be sent as is.
+      **/whitelist** - Adds the channel the command was sent in to the whitelist.
       **Written by**: soulwax#5358
       **Github:**: https://github.com/soulwax/Shimizu-GPT-3
       `
