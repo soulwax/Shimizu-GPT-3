@@ -7,7 +7,7 @@
     "start": "node app.js",
     "debug": "nodemon --inspect=7559 app.js",
     "pm2": "pm2 start app.js --name=Shimizu --node-args=\"--inspect --inspect-port=7559\"",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "clean": "rm -rf node_modules && rm package-lock.json && rm yarn.lock"
   },
   "keywords": [],
   "author": "soulwax",
