@@ -3,65 +3,35 @@
  * @param {Object} mongoose 
  * @returns {Object} the Conversation Schema class
  */
+
+// TODO: Soon to be reworked to support better AI memory of past conversations
 module.exports = (mongoose) => {
   const conversationSchema = new mongoose.Schema({
+    // Define a mongodb schema for conversations with two keys: channel id and user id, as well as a list of messages, for the user in different channels and for different users in one channel
     type: {
       type: String,
-      enum: ['private', 'channel'],
-      default: 'channel'
+      required: true,
+      enum: ['channel', 'user']
     },
-    guildId: {
+    channel: {
       type: String,
       required: true
     },
-    channelId: {
+    user: {
       type: String,
       required: true
     },
-    conversation: [
-      {
-        userId: {
-          type: String,
-          required: true
-        },
-        userName: {
-          type: String,
-          required: true,
-          default: 'Unknown'
-        },
-        messages: [
-          {
-            message: {
-              type: String,
-              required: true,
-              default: ''
-            },
-            timestamp: {
-              type: Date,
-              required: true,
-              default: Date.now
-            }
-          }
-        ]
-      }
-    ]
+    messages: [{
+      type: String,
+      required: true,
+      timestamps: true,
+      default: Date.now
+    }]
   })
 
-  //TODO: define helper functions for the conversation model
-  conversationSchema.methods.getConversationByChannelID = async function (channelId) {
-    return await this.model('Conversation').findOne({ channelId: channelId })
-  }
-  conversationSchema.methods.getLastMessagesInChannel = async function (channelId, limit) {
-    await this.model('Conversation').findOne({ channelId: channelId })
-      .then(conversation => {
-        // Return the last messages in the conversation sorted by timestamp
-        return conversation.conversation.messages.sort((a, b) => {
-          return a.timestamp - b.timestamp
-        }
-        ).slice(0, limit)
-      }).catch(err => {
-        console.log(err)
-      })
+  // Prototype helper functions
+  conversationSchema.methods = {
+
   }
 
   return mongoose.model('Conversation', conversationSchema)
