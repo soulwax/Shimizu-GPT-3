@@ -317,6 +317,31 @@ const setWhitelistedChannelForGuild = async (guildID, channelID) => {
   return guild.myself.whitelistedChannels || null // setting always returns the current value (for convenience)
 }
 
+const setPremiseForGuild = async (guildID, premise) => {
+  const guild = await getGuild(guildID)
+  if (!guild) return
+  guild.myself.premise = premise
+  await guild.save()
+  console.log(`\tAdjusted premise for guild ${guildID} to ${premise}`)
+  await updateGuildCache(guild)
+  return guild.myself.premise || null // setting always returns the current value (for convenience)
+}
+
+const getPremiseForGuild = async (guildID) => {
+  const guild = await getGuild(guildID)
+  if (!guild) {
+    console.log(`\tNo guild found for id: ${guildID}`)
+    return false
+  } else if (guild.myself.premise === undefined) {
+    console.log(`\tNo premise found for ${guildID} but the guild was found.`)
+    return false
+  } else {
+    console.log(`\tPremise found for ${guildID}, ${guild.myself.premise}`)
+    return guild.myself.premise || false
+  }
+}
+
+
 module.exports = {
   syncGuildsWithDB,
   getGuild,
@@ -330,5 +355,7 @@ module.exports = {
   getCompletionModeForGuild,
   addMessageToConversation,
   getMyselfForGuild,
-  setWhitelistedChannelForGuild
+  setWhitelistedChannelForGuild,
+  setPremiseForGuild,
+  getPremiseForGuild,
 }
