@@ -34,7 +34,7 @@ const syncGuildsWithDB = async (client, myself) => {
         myself: {
           myId: myself.id,
           name: myself.name,
-          model:  myself.model,
+          model: myself.model,
           apiKey: myself.key,
           temperature: myself.temperature,
           top_p: myself.top_p,
@@ -43,7 +43,7 @@ const syncGuildsWithDB = async (client, myself) => {
           stop: myself.stop,
           chanceToRespond: myself.chanceToRespond,
           rawMode: myself.rawMode,
-          completionMode: myself.completionMode,
+          completionMode: myself.completionMode
         }
       })
       await guildDBObject
@@ -131,62 +131,57 @@ const updateGuildVariables = async (guilds) => {
 // Find the conversation for a specified guild and channel and add a message to it
 /**
  * Add a message to the conversation for a specified guild and channel.
- * @param {Object} message The message object used to extract the conversation data needed.
- * @param {string} content The content of the message to add to the conversation.
+ * @param {Object} message The message object as provided by discord.js, used to extract the conversation data needed.
+ * @param {string} content The content of the actual message to add to the conversation.
+ * @param {string} type The type of message to add to the conversation. Either "user" or "channel".
  * @returns {boolean} True if the message was added to the conversation, false if it errored.
  */
-const addMessageToConversation = async (message, content) => {
-  const currentGuildId = message.guild.id
-  const currentGuildName = message.guild.name
-  const currentChannelId = message.channel.id
+const addMessageToConversation = async (message, content, type) => {
+  // ? How does Shimizu remember what was said prior in a conversation? I will attempt to explain the technicalities right now:
+  // If this is merely a user type conversation, channel and guild are irrelevant.
+  // In order to see if a conversation already exists, all we need is to check for a channel id.
+  // In order to update a conversation, the channel id must exist, we then append the user, timestamp, and message to the conversation.
+  // If a channel id findOne returns null, create new conversation using the channel id, then create a new conversation object using the channel id, user id, timestamp, and message.
+  // Caveats: We will not rely on guild data at all for simplicity.
+  //          The upside is Shimizu will remember conversations across guilds.
+  //          The would be that we can't associate a conversation with a guild.
+  //          However I will mitgate this by adding a guild id and name to the conversation object if it is a type channel conversation.
+
+  // these vars are needed for both types
   const currentUserId = message.author.id
   const currentUserName = message.author.username
   const currentTimestamp = message.createdAt.toISOString()
-  const conversation = await Conversation.findOne({ channelId: currentChannelId })
+  const conversation = null;
+
+  if (type === 'channel') {
+    // vars needed specifically if the type is channel
+    const currentChannelId = message.channel.id
+    const currentChannelName = message.channel.name
+    const guildId = message.guild.id
+    const guildName = message.guild.name
+
+    const conversation = await Conversation.findOne({ channel: currentChannelId, type: type })
+    if (conversation) {
+      conversation.messages.push({
+        message: content,
+        timestamp: currentTimestamp,
+        userId: currentUserId,
+        username: currentUserName
+      })
+      await conversation.save()
+    }
+  } else if (type === 'user' || type === 'private') {
+    // vars needed specifically if the type is user
+    const conversation = await Conversation.findOne({ userId: currentUserId, type: type })
+    // TODO: process private conversations
+  }
+
   if (conversation) {
-    await conversation.conversation.push({
-      userId: currentUserId,
-      userName: currentUserName,
-      messages: [
-        {
-          message: content,
-          timestamp: currentTimestamp
-        }
-      ]
-    })
-    await conversation.save()
-    console.log(`\tAdded message to conversation for ${currentGuildName} in ${currentChannelId}`)
-  } else {
-    console.log(`\tNo conversation found for ${currentGuildName} in ${currentChannelId}. Creating a new one.`)
-    const conversationDBObject = new Conversation({
-      type: 'channel',
-      guildId: currentGuildId,
-      channelId: currentChannelId,
-      conversation: [
-        {
-          userId: currentUserId,
-          userName: currentUserName,
-          messages: [
-            {
-              message: content,
-              timestamp: currentTimestamp
-            }
-          ]
-        }
-      ]
-    })
-    await conversationDBObject
-      .save()
-      .then(() => {
-        console.log(`\tCreated conversation for ${currentGuildName} in ${currentChannelId}`)
-        return true
-      })
-      .catch((err) => {
-        console.log(err)
-        return false
-      })
+
   }
 }
+
+
 
 /**
  * Function that gets the conversation from the database and returns it
@@ -202,7 +197,7 @@ const setChanceForGuild = async (guildID, chance) => {
   await guild.save()
   console.log(`\tAdjusted chance for guild ${guildID} to ${chance} or ${chance * 100}%`)
   await updateGuildCache(guild)
-  return guild.myself.chanceToRespond || null // setting always returns the current value (for convenience)
+  return guild.myself.chanceToRespond // setting always returns the current value (for convenience)
 }
 
 /**
@@ -218,7 +213,7 @@ const setCompletionModeForGuild = async (guildID, mode) => {
   await guild.save()
   console.log(`\tAdjusted completion mode for guild ${guildID} to ${mode}`)
   await updateGuildCache(guild)
-  return guild.myself.completionMode || null // setting always returns the current value (for convenience)
+  return guild.myself.completionMode // setting always returns the current value (for convenience)
 }
 
 /**
@@ -235,7 +230,7 @@ const setRawModeForGuild = async (guildID, rawMode) => {
   await guild.save()
   console.log(`\tAdjusted raw mode for guild ${guildID} to ${rawMode}`)
   await updateGuildCache(guild)
-  return guild.myself.rawMode || null // setting always returns the current value (for convenience)
+  return guild.myself.rawMode // setting always returns the current value (for convenience)
 }
 
 /**  Function that gets the guild from the database and returns it
@@ -284,7 +279,7 @@ const getCompletionModeForGuild = async (guildID) => {
     return false
   } else {
     console.log(`\tCompletion mode found for ${guildID}, ${guild.myself.completionMode}`)
-    return guild.myself.completionMode || false
+    return guild.myself.completionMode
   }
 }
 /**
@@ -303,7 +298,7 @@ const getRawModeForGuild = async (guildID) => {
     return false
   } else {
     console.log(`\tRaw mode found for ${guildID}, returning ${guild.myself.rawMode}`)
-    return guild.myself.rawMode || false
+    return guild.myself.rawMode
   }
 }
 
@@ -341,7 +336,6 @@ const getPremiseForGuild = async (guildID) => {
   }
 }
 
-
 module.exports = {
   syncGuildsWithDB,
   getGuild,
@@ -357,5 +351,5 @@ module.exports = {
   getMyselfForGuild,
   setWhitelistedChannelForGuild,
   setPremiseForGuild,
-  getPremiseForGuild,
+  getPremiseForGuild
 }

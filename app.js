@@ -31,7 +31,6 @@ const { getPrompt, myselfDefault } = require('./ai.js')
 // db requires
 const {
   syncGuildsWithDB,
-  getConversation: getConversationFromDB,
   setChanceForGuild,
   setCompletionModeForGuild,
   setRawModeForGuild,
@@ -110,9 +109,9 @@ const getStatusForGuildEmbed = async (guild) => {
   const embed = new MessageEmbed()
   embed.setTitle(`My settings for ${guild.name}:`)
   embed.setColor(`#00ab69`)
-  embed.addField(`Completion mode: `, `${await getCompletionModeForGuild(guild.id)}`)
-  embed.addField(`Raw mode: `, `${await getRawModeForGuild(guild.id)}`)
-  embed.addField(`My chance to respond randomly:`, `${(await getChanceForGuild(guild.id)) * 100}%`)
+  embed.addFields(`Completion mode: `, `${await getCompletionModeForGuild(guild.id)}`)
+  embed.addFields(`Raw mode: `, `${await getRawModeForGuild(guild.id)}`)
+  embed.addFields(`My chance to respond randomly:`, `${(await getChanceForGuild(guild.id)) * 100}%`)
   return embed
 }
 //#endregion Discord specific helper functions
