@@ -30,14 +30,15 @@ const { getRandom, replyMention, isChannelWhitelisted, isChannelBlacklisted, cle
 const { getPrompt, myselfDefault } = require('./ai.js')
 // db requires
 const {
+  saveMessage,
   syncGuildsWithDB,
   setChanceForGuild,
   setCompletionModeForGuild,
+  getConversationMessages,
   setRawModeForGuild,
   getChanceForGuild,
   getCompletionModeForGuild,
   getRawModeForGuild,
-  addMessageToConversation,
   updateGuildVariables,
   getMyselfForGuild,
   getGuild: getGuildFromDB,
@@ -305,25 +306,27 @@ client.on('interactionCreate', async (interaction) => {
 client.on('messageCreate', async (message) => {
   if (message.author.bot) return
   const guildID = message.guild.id
+  const channelId = message.channel.id
   const guild = await getGuildFromDB(guildID, false)
   const myself = await getMyselfForGuild(guildID) // this call is cached as well
+  const myName = myself.name
   const author = message.author.username
-  let rawMessage = message.content
+  let rawContent = message.content
   const chanceToRespond = myself.chanceToRespond
   const calculatedChance = getRandom(chanceToRespond)
   const isCompletionMode = myself.completionMode
   const isRawMode = myself.rawMode
 
-  if (message.attachments.size > 0 && rawMessage.length <= 0) {
+  if (message.attachments.size > 0 && rawContent.length <= 0) {
     const attachment = message.attachments.first()
     const attachmentURL = attachment.url
-    rawMessage = attachmentURL
-    if (VERBOSE) console.log(`${author} sent a message with an attachment: ${rawMessage}`)
+    rawContent = attachmentURL
+    if (VERBOSE) console.log(`${author} sent a message with an attachment: ${rawContent}`)
   }
 
-  if (VERBOSE) console.log(`${author} said: ${rawMessage}`)
-  if (rawMessage === '') return
-  await addMessageToConversation(message, rawMessage) // add the post to the conversation
+  if (VERBOSE) console.log(`${author} said: ${rawContent}`)
+  if (rawContent === '') return
+  await saveMessage(channelId, rawContent, author) // add the post to the conversation
   // The bot will reply under the following conditions:
   // case 1: the bot is mentioned
   // case 2: the message was received in a whitelisted channel
@@ -342,12 +345,12 @@ client.on('messageCreate', async (message) => {
     // to work with the message, we need to clean it from discord's markdown
     // get rid of discord names and emojis
     // ? is this really necessary?
-    const cleanedText = cleanText(rawMessage, isCompletionMode)
+    const cleanedText = cleanText(rawContent, isCompletionMode)
     if (cleanedText.length <= 0) return // if the cleaned text is empty, don't do anything
 
     message.channel.sendTyping() // otherwise, start typing
-
-    let response = await getPrompt(isRawMode ? rawMessage : cleanedText, guild, author)
+    const pastMessages = await getConversationMessages(channelId)
+    let response = await getPrompt(isRawMode ? rawContent : cleanedText, guild, author)
 
     if (response === undefined) {
       // This case should technically never trigger
@@ -361,7 +364,7 @@ client.on('messageCreate', async (message) => {
     // don't do anything if the response is empty or undefined
     if (response.length == '' || response.length == undefined) return
     // reply with the prompt
-    await addMessageToConversation(message, response) // this time, add the response to the conversation database
+    await saveMessage(channelId, response, myName) // this time, add the response to the conversation database
     await message.reply(response)
   }
 })

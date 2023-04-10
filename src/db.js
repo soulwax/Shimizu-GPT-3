@@ -1,7 +1,6 @@
-const mongoose = require('mongoose')
 const { myselfDefault } = require('./ai.js')
-const Guild = require('./models/guild.js')(mongoose)
-const Conversation = require('./models/conversation.js')(mongoose)
+const Guild = require('./models/guild.js')
+const Conversation = require('./models/conversation.js')
 
 /**
  * Function that syncs guilds between client and database
@@ -10,29 +9,56 @@ const Conversation = require('./models/conversation.js')(mongoose)
  * @returns {Boolean} frue if the sync was successful, false if it failed
  */
 const getGuildsAndIds = (client) => {
-    return client.guilds.cache.map((guild) => ({
-      name: guild.name,
-      id: guild.id,
-    }));
-  };
-  
-  const logGuilds = (guilds) => {
-    const guildNames = guilds.map((guild) => guild.name);
-    console.log(`\tGuilds: ${guildNames.join(', ')}`); // TODO: add verbose option
-  };
-  
-  const guildExistsInDb = async (guildId) => {
-    return Boolean(await Guild.findOne({ guildId }));
-  };
-  
-  const createGuildDBObject = (iteratedGuild, client, myself) => {
-    const { id: guildId, name } = iteratedGuild;
-    const joinedAt = client.guilds.cache.get(guildId).joinedAt.toISOString();
-    const {
-      id,
+  return client.guilds.cache.map((guild) => ({
+    name: guild.name,
+    id: guild.id
+  }))
+}
+
+const logGuilds = (guilds) => {
+  const guildNames = guilds.map((guild) => guild.name)
+  console.log(`\tGuilds: ${guildNames.join(', ')}`) // TODO: add verbose option
+}
+
+const guildExistsInDb = async (guildId) => {
+  return Boolean(await Guild.findOne({ guildId }))
+}
+
+const createGuildDBObject = (iteratedGuild, client, myself) => {
+  const { id: guildId, name } = iteratedGuild
+  const joinedAt = client.guilds.cache.get(guildId).joinedAt.toISOString()
+  const {
+    id,
+    name: myName,
+    model,
+    key,
+    temperature,
+    top_p,
+    frequency_penalty,
+    presence_penalty,
+    stop,
+    chanceToRespond,
+    rawMode,
+    completionMode,
+    tokens,
+    premise,
+    whiteList,
+    blackList
+  } = myself
+
+  return new Guild({
+    guildId,
+    name,
+    joinedAt,
+    tokens,
+    premise,
+    whitelistedChannels: whiteList,
+    blacklistedChannels: blackList,
+    myself: {
+      myId: id,
       name: myName,
       model,
-      key,
+      apiKey: key,
       temperature,
       top_p,
       frequency_penalty,
@@ -40,65 +66,38 @@ const getGuildsAndIds = (client) => {
       stop,
       chanceToRespond,
       rawMode,
-      completionMode,
-      tokens,
-      premise,
-      whiteList,
-      blackList,
-    } = myself;
-  
-    return new Guild({
-      guildId,
-      name,
-      joinedAt,
-      tokens,
-      premise,
-      whitelistedChannels: whiteList,
-      blacklistedChannels: blackList,
-      myself: {
-        myId: id,
-        name: myName,
-        model,
-        apiKey: key,
-        temperature,
-        top_p,
-        frequency_penalty,
-        presence_penalty,
-        stop,
-        chanceToRespond,
-        rawMode,
-        completionMode,
-      },
-    });
-  };
-  
-  const saveGuild = async (guildDBObject) => {
-    try {
-      await guildDBObject.save();
-      console.log(`\t\tGuilds were successfully saved to the database if they didn't exist yet`);
-      return true;
-    } catch (err) {
-      console.log(err);
-      return false;
+      completionMode
     }
-  };
-  
-  const syncGuildsWithDB = async (client, myself) => {
-    const guilds = getGuildsAndIds(client);
-    logGuilds(guilds);
-  
-    for (const iteratedGuild of guilds) {
-      const { id: iteratedGuildId, name: iteratedGuildName } = iteratedGuild;
-  
-      if (await guildExistsInDb(iteratedGuildId)) {
-        console.log(`\t\tGuild ${iteratedGuildName} already exists in the database`);
-        continue;
-      }
-  
-      const guildDBObject = createGuildDBObject(iteratedGuild, client, myself);
-      await saveGuild(guildDBObject);
+  })
+}
+
+const saveGuild = async (guildDBObject) => {
+  try {
+    await guildDBObject.save()
+    console.log(`\t\tGuilds were successfully saved to the database if they didn't exist yet`)
+    return true
+  } catch (err) {
+    console.log(err)
+    return false
+  }
+}
+
+const syncGuildsWithDB = async (client, myself) => {
+  const guilds = getGuildsAndIds(client)
+  logGuilds(guilds)
+
+  for (const iteratedGuild of guilds) {
+    const { id: iteratedGuildId, name: iteratedGuildName } = iteratedGuild
+
+    if (await guildExistsInDb(iteratedGuildId)) {
+      console.log(`\t\tGuild ${iteratedGuildName} already exists in the database`)
+      continue
     }
-  };
+
+    const guildDBObject = createGuildDBObject(iteratedGuild, client, myself)
+    await saveGuild(guildDBObject)
+  }
+}
 
 // Cache Guilds to prevent database queries
 // id => guild
@@ -168,60 +167,25 @@ const updateGuildVariables = async (guilds) => {
   }
 }
 
-// Find the conversation for a specified guild and channel and add a message to it
-/**
- * Add a message to the conversation for a specified guild and channel.
- * @param {Object} message The message object as provided by discord.js, used to extract the conversation data needed.
- * @param {string} content The content of the actual message to add to the conversation.
- * @param {string} type The type of message to add to the conversation. Either "user" or "channel".
- * @returns {boolean} True if the message was added to the conversation, false if it errored.
- */
-const addMessageToConversation = async (message, content, type) => {
-  // ? How does Shimizu remember what was said prior in a conversation? I will attempt to explain the technicalities right now:
-  // If this is merely a user type conversation, channel and guild are irrelevant.
-  // In order to see if a conversation already exists, all we need is to check for a channel id.
-  // In order to update a conversation, the channel id must exist, we then append the user, timestamp, and message to the conversation.
-  // If a channel id findOne returns null, create new conversation using the channel id, then create a new conversation object using the channel id, user id, timestamp, and message.
-  // Caveats: We will not rely on guild data at all for simplicity.
-  //          The upside is Shimizu will remember conversations across guilds.
-  //          The would be that we can't associate a conversation with a guild.
-  //          However I will mitgate this by adding a guild id and name to the conversation object if it is a type channel conversation.
+const saveMessage = async (channelId, content, author) => {
+  const timestamp = new Date()
+  const message = { content, timestamp, author }
 
-  // these vars are needed for both types
-  const currentUserId = message.author.id
-  const currentUserName = message.author.username
-  const currentTimestamp = message.createdAt.toISOString()
-  const conversation = null;
-
-  if (type === 'channel') {
-    // vars needed specifically if the type is channel
-    const currentChannelId = message.channel.id
-    const currentChannelName = message.channel.name
-    const guildId = message.guild.id
-    const guildName = message.guild.name
-
-    const conversation = await Conversation.findOne({ channel: currentChannelId, type: type })
-    if (conversation) {
-      conversation.messages.push({
-        message: content,
-        timestamp: currentTimestamp,
-        userId: currentUserId,
-        username: currentUserName
-      })
-      await conversation.save()
-    }
-  } else if (type === 'user' || type === 'private') {
-    // vars needed specifically if the type is user
-    const conversation = await Conversation.findOne({ userId: currentUserId, type: type })
-    // TODO: process private conversations
-  }
+  const conversation = await Conversation.findOne({ channelId })
 
   if (conversation) {
-
+    conversation.messages.push(message)
+    await conversation.save()
+  } else {
+    const newConversation = new Conversation({ channelId, messages: [message] })
+    await newConversation.save()
   }
 }
 
-
+const getConversationMessages = async (channelId) => {
+  const conversation = await Conversation.findOne({ channelId })
+  return conversation ? conversation.messages : []
+}
 
 /**
  * Function that gets the conversation from the database and returns it
@@ -271,17 +235,6 @@ const setRawModeForGuild = async (guildID, rawMode) => {
   console.log(`\tAdjusted raw mode for guild ${guildID} to ${rawMode}`)
   await updateGuildCache(guild)
   return guild.myself.rawMode // setting always returns the current value (for convenience)
-}
-
-/**  Function that gets the guild from the database and returns it
- * @param {string} guildID - The ID of the guild to get
- * @returns {object} - The guild object
- * @returns {null} - If no guild was found
- */
-const getConversation = async (guildID, channelID) => {
-  const convo = await Conversation.find({ guildID: guildID, channelID: channelID })
-  if (!convo) return
-  return convo
 }
 
 /** Get the chance to reply for a specified guild
@@ -380,14 +333,14 @@ module.exports = {
   syncGuildsWithDB,
   getGuild,
   updateGuildVariables,
-  getConversation,
+  getConversationMessages,
+  saveMessage,
   setChanceForGuild,
   setCompletionModeForGuild,
   setRawModeForGuild,
   getRawModeForGuild,
   getChanceForGuild,
   getCompletionModeForGuild,
-  addMessageToConversation,
   getMyselfForGuild,
   setWhitelistedChannelForGuild,
   setPremiseForGuild,
