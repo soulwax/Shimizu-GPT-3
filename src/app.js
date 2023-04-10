@@ -26,7 +26,14 @@ const { Routes } = require(`discord-api-types/v9`)
 const { Client } = require(`discord.js`)
 const rest = new REST({ version: `9` }).setToken(TOKEN)
 //#region custom requires
-const { getRandom, replyMention, isChannelWhitelisted, isChannelBlacklisted, cleanText } = require('./helper.js')
+const {
+  getRandom,
+  replyMention,
+  isChannelWhitelisted,
+  isChannelBlacklisted,
+  cleanText,
+  shouldReply
+} = require('./helper.js')
 const { getPrompt, myselfDefault } = require('./ai.js')
 // db requires
 const {
@@ -305,66 +312,53 @@ client.on('interactionCreate', async (interaction) => {
 //#region main message event
 client.on('messageCreate', async (message) => {
   if (message.author.bot) return
-  const guildID = message.guild.id
-  const channelId = message.channel.id
-  const guild = await getGuildFromDB(guildID, false)
-  const myself = await getMyselfForGuild(guildID) // this call is cached as well
-  const myName = myself.name
-  const author = message.author.username
-  let rawContent = message.content
-  const chanceToRespond = myself.chanceToRespond
-  const calculatedChance = getRandom(chanceToRespond)
-  const isCompletionMode = myself.completionMode
-  const isRawMode = myself.rawMode
 
-  if (message.attachments.size > 0 && rawContent.length <= 0) {
-    const attachment = message.attachments.first()
-    const attachmentURL = attachment.url
+  const { guild, channel, author, content, attachments } = message
+  const { id: guildID } = guild
+  const { id: channelId } = channel
+  const { username: authorUsername } = author
+  const guildInfo = await getGuildFromDB(guildID, false)
+
+  const {
+    name: myName,
+    chanceToRespond,
+    completionMode: isCompletionMode,
+    rawMode: isRawMode,
+    whiteList,
+    blackList
+  } = await getMyselfForGuild(guildID)
+
+  let rawContent = content
+
+  if (attachments.size > 0 && rawContent.length <= 0) {
+    const attachmentURL = attachments.first().url
     rawContent = attachmentURL
-    if (VERBOSE) console.log(`${author} sent a message with an attachment: ${rawContent}`)
+    if (VERBOSE) console.log(`${authorUsername} sent a message with an attachment: ${rawContent}`)
   }
 
-  if (VERBOSE) console.log(`${author} said: ${rawContent}`)
+  if (VERBOSE) console.log(`${authorUsername} said: ${rawContent}`)
   if (rawContent === '') return
-  await saveMessage(channelId, rawContent, author) // add the post to the conversation
-  // The bot will reply under the following conditions:
-  // case 1: the bot is mentioned
-  // case 2: the message was received in a whitelisted channel
-  // case 3: the message received was not in a blacklisted channel and
-  //         the random chance to respond was successful
-  if (
-    (replyMention(message, client) && chanceToRespond > 0) ||
-    isChannelWhitelisted(message, myselfDefault.whiteList) || // TODO: get from database
-    (calculatedChance && !isChannelBlacklisted(message, myselfDefault.blackList))
-  ) {
-    // Get the last 5 messages from the database of the conversation ordered by timestamp
-    // Testing purposes!
-    //const conversation = await getConversationFromDB(message.channel.id)
-    //console.log(conversation.getLastMessagesInChannel(message.channel.i, 5))
 
-    // to work with the message, we need to clean it from discord's markdown
-    // get rid of discord names and emojis
-    // ? is this really necessary?
+  await saveMessage(channelId, rawContent, authorUsername)
+
+  if (shouldReply(message, client, chanceToRespond, whiteList, blackList)) {
     const cleanedText = cleanText(rawContent, isCompletionMode)
-    if (cleanedText.length <= 0) return // if the cleaned text is empty, don't do anything
+    if (cleanedText.length <= 0) return
 
-    message.channel.sendTyping() // otherwise, start typing
+    message.channel.sendTyping()
+    // TODO: Put past messages into the prompt
     const pastMessages = await getConversationMessages(channelId)
-    let response = await getPrompt(isRawMode ? rawContent : cleanedText, guild, author)
+    let response = await getPrompt(isRawMode ? rawContent : cleanedText, guildInfo, author)
 
     if (response === undefined) {
-      // This case should technically never trigger
-      // unless we send a faulty prompt
       response = 'I am sorry, I do not understand.'
     } else if (response.length > 2000) {
-      //shorten response if it is too long
-      //the discord API has a limit of 2000 characters
       response = response.substring(0, 2000)
     }
-    // don't do anything if the response is empty or undefined
-    if (response.length == '' || response.length == undefined) return
-    // reply with the prompt
-    await saveMessage(channelId, response, myName) // this time, add the response to the conversation database
+
+    if (response.length === '' || response.length === undefined) return
+
+    await saveMessage(channelId, response, myName)
     await message.reply(response)
   }
 })
