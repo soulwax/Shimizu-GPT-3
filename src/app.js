@@ -11,7 +11,7 @@
  */
 
 //#region enviroment variables
-require('dotenv').config({ path: __dirname + '/.env' })
+require('dotenv').config({})
 const TOKEN = process.env.DISCORD_TOKEN
 const VERBOSE = process.env.VERBOSE === 'true' ? true : false
 const DB_CONNECTION_STRING = process.env.DB_CONNECTION_STRING
@@ -107,11 +107,16 @@ const commands = [
 //#region Discord specific helper functions
 const getStatusForGuildEmbed = async (guild) => {
   const embed = new MessageEmbed()
-  embed.setTitle(`My settings for ${guild.name}:`)
+  const guildName = guild.name
+  const completionMode = await getCompletionModeForGuild(guild.id)
+  const rawMode = await getRawModeForGuild(guild.id)
+  const chance = await getChanceForGuild(guild.id)
+  const completionFieldText = `Completion mode: ${completionMode ? 'on' : 'off'}`
+  const rawFieldText = `Raw mode: ${rawMode ? 'on' : 'off'}`
+  const chanceFieldText = `My chance to respond randomly: ${chance * 100}%`
+  embed.setTitle(`My settings for ${guildName}:`)
   embed.setColor(`#00ab69`)
-  embed.addFields(`Completion mode: `, `${await getCompletionModeForGuild(guild.id)}`)
-  embed.addFields(`Raw mode: `, `${await getRawModeForGuild(guild.id)}`)
-  embed.addFields(`My chance to respond randomly:`, `${(await getChanceForGuild(guild.id)) * 100}%`)
+  embed.setDescription(`${completionFieldText}\n${rawFieldText}\n${chanceFieldText}`)
   return embed
 }
 //#endregion Discord specific helper functions
@@ -223,7 +228,6 @@ client.on('interactionCreate', async (interaction) => {
 })
 //#endregion command raw mode
 
-
 //#region setchance command
 // setchance = set chance to a specific value in %
 client.on('interactionCreate', async (interaction) => {
@@ -309,7 +313,7 @@ client.on('messageCreate', async (message) => {
   const calculatedChance = getRandom(chanceToRespond)
   const isCompletionMode = myself.completionMode
   const isRawMode = myself.rawMode
-  
+
   if (message.attachments.size > 0 && rawMessage.length <= 0) {
     const attachment = message.attachments.first()
     const attachmentURL = attachment.url
@@ -330,7 +334,6 @@ client.on('messageCreate', async (message) => {
     isChannelWhitelisted(message, myselfDefault.whiteList) || // TODO: get from database
     (calculatedChance && !isChannelBlacklisted(message, myselfDefault.blackList))
   ) {
-
     // Get the last 5 messages from the database of the conversation ordered by timestamp
     // Testing purposes!
     //const conversation = await getConversationFromDB(message.channel.id)
@@ -375,7 +378,6 @@ client.on('guildCreate', async (guild) => {
   await addChanceToRespondToGuild(guild.id, 0.05)
   await addConversationToGuild(guild.id, [])
 })
-
 
 //On discord bot shutdown
 client.on('disconnect', async () => {

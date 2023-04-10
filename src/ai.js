@@ -1,4 +1,4 @@
-require('dotenv').config({ path: __dirname + '/.env' })
+require('dotenv').config({ path: __dirname + '../.env' })
 const { cleanResultText } = require('./helper')
 const got = require('got')
 const VERBOSE = process.env.VERBOSE === 'true'

@@ -9,56 +9,96 @@ const Conversation = require('./models/conversation.js')(mongoose)
  * @param {Object} myself - The myself object (manually set)
  * @returns {Boolean} frue if the sync was successful, false if it failed
  */
-const syncGuildsWithDB = async (client, myself) => {
-  const guilds = await client.guilds.cache.map((guild) => guild.name)
-  const guildIDs = await client.guilds.cache.map((guild) => guild.id)
-  console.log(`\tGuilds: ${guilds.join(', ')}`) //TODO: add verbose option
-  // Iterate through each guild and add it to the database if it doesn't exist in the collection yet
-  for (let i = 0; i < guildIDs.length; i++) {
-    const iteratedGuildId = guildIDs[i]
-    const iteratedGuildName = guilds[i]
-    // if the guild already exists in the database, continue
-    if (await Guild.findOne({ guildId: iteratedGuildId })) {
-      console.log(`\t\tGuild ${iteratedGuildName} already exists in the database`)
-      continue
-    } else {
-      // if the guild doesn't exist in the database, add it
-      const guildDBObject = new Guild({
-        guildId: iteratedGuildId,
-        name: iteratedGuildName,
-        joinedAt: client.guilds.cache.get(iteratedGuildId).joinedAt.toISOString(),
-        tokens: myself.tokens,
-        premise: myself.premise,
-        whitelistedChannels: myself.whiteList,
-        blacklistedChannels: myself.blackList,
-        myself: {
-          myId: myself.id,
-          name: myself.name,
-          model: myself.model,
-          apiKey: myself.key,
-          temperature: myself.temperature,
-          top_p: myself.top_p,
-          frequency_penalty: myself.frequency_penalty,
-          presence_penalty: myself.presence_penalty,
-          stop: myself.stop,
-          chanceToRespond: myself.chanceToRespond,
-          rawMode: myself.rawMode,
-          completionMode: myself.completionMode
-        }
-      })
-      await guildDBObject
-        .save()
-        .then(() => {
-          console.log(`\t\tGuilds were successfully saved to the database if they didn't exist yet`)
-          return true
-        })
-        .catch((err) => {
-          console.log(err)
-          return false
-        })
+const getGuildsAndIds = (client) => {
+    return client.guilds.cache.map((guild) => ({
+      name: guild.name,
+      id: guild.id,
+    }));
+  };
+  
+  const logGuilds = (guilds) => {
+    const guildNames = guilds.map((guild) => guild.name);
+    console.log(`\tGuilds: ${guildNames.join(', ')}`); // TODO: add verbose option
+  };
+  
+  const guildExistsInDb = async (guildId) => {
+    return Boolean(await Guild.findOne({ guildId }));
+  };
+  
+  const createGuildDBObject = (iteratedGuild, client, myself) => {
+    const { id: guildId, name } = iteratedGuild;
+    const joinedAt = client.guilds.cache.get(guildId).joinedAt.toISOString();
+    const {
+      id,
+      name: myName,
+      model,
+      key,
+      temperature,
+      top_p,
+      frequency_penalty,
+      presence_penalty,
+      stop,
+      chanceToRespond,
+      rawMode,
+      completionMode,
+      tokens,
+      premise,
+      whiteList,
+      blackList,
+    } = myself;
+  
+    return new Guild({
+      guildId,
+      name,
+      joinedAt,
+      tokens,
+      premise,
+      whitelistedChannels: whiteList,
+      blacklistedChannels: blackList,
+      myself: {
+        myId: id,
+        name: myName,
+        model,
+        apiKey: key,
+        temperature,
+        top_p,
+        frequency_penalty,
+        presence_penalty,
+        stop,
+        chanceToRespond,
+        rawMode,
+        completionMode,
+      },
+    });
+  };
+  
+  const saveGuild = async (guildDBObject) => {
+    try {
+      await guildDBObject.save();
+      console.log(`\t\tGuilds were successfully saved to the database if they didn't exist yet`);
+      return true;
+    } catch (err) {
+      console.log(err);
+      return false;
     }
-  }
-}
+  };
+  
+  const syncGuildsWithDB = async (client, myself) => {
+    const guilds = getGuildsAndIds(client);
+    logGuilds(guilds);
+  
+    for (const iteratedGuild of guilds) {
+      const { id: iteratedGuildId, name: iteratedGuildName } = iteratedGuild;
+  
+      if (await guildExistsInDb(iteratedGuildId)) {
+        console.log(`\t\tGuild ${iteratedGuildName} already exists in the database`);
+        continue;
+      }
+  
+      const guildDBObject = createGuildDBObject(iteratedGuild, client, myself);
+      await saveGuild(guildDBObject);
+    }
+  };
 
 // Cache Guilds to prevent database queries
 // id => guild
