@@ -1,10 +1,11 @@
+const mongoose = require('mongoose');
+const { Schema } = mongoose;
 /**
  * Returns a schema for the Guild model
  * @param {Object} mongoose
  * @returns {Object} the Server Guild class
  */
-module.exports = (mongoose) => {
-  const guildSchema = new mongoose.Schema({
+  const guildSchema = new Schema({
     guildId: {
       type: String,
       required: true
@@ -49,28 +50,6 @@ module.exports = (mongoose) => {
       rawMode: {type: Boolean, required: true, default: false},
       completionMode: {type: Boolean, required: true, default: false}
     }
-    // methods: {
-    //   getGuildByID(id) {
-    //     return this.model('Guild').findOne({ id: id })
-    //   },
-    //   getGuildIDByName(name) {
-    //     return this.model('Guild').findOne({ name: name })
-    //   },
-    //   getGuildByName(name) {
-    //     return this.model('Guild').findOne({ name: name })
-    //   },
-    //   getMemberInGuild(memberID) {
-    //     return this.guildMembers.find(member => member.memberID === memberID)
-    //   },
-    //   getMostRecentMessageOfMemberInGuild(guild, member) {
-    //     return this.model('Message').findOne({
-    //       guild: guild,
-    //       member: member
-    //     }).sort({
-    //       createdAt: -1
-    //     })
-    //   }
-    // }
   })
 
   const Guild = mongoose.model('Guild', guildSchema)
@@ -79,5 +58,4 @@ module.exports = (mongoose) => {
     return await this.save()
   }
   
-  return Guild
-}
+  module.exports = Guild
