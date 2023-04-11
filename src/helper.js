@@ -199,4 +199,28 @@ const shouldReply = (message, client, chanceToRespond, whiteList, blackList) => 
   )
 }
 
-module.exports = { getRandom, replyMention, isChannelWhitelisted, isChannelBlacklisted, cleanText, cleanResultText, shouldReply }
+function formatConversationHistory(messages, myName, maxHistoryLength = 10) {
+  // Limit the number of past messages to include in the prompt
+  const limitedMessages = messages.slice(-maxHistoryLength)
+
+  let history = ''
+  limitedMessages.forEach((message) => {
+    const { content, timestamp, author } = message
+    const formattedTimestamp = timestamp.toLocaleString()
+    const username = author === myName ? `**${author} (AI)**` : `**${author}**`
+    history += `${formattedTimestamp} ${username}: ${content}\n`
+  })
+
+  return history
+}
+
+module.exports = {
+  getRandom,
+  replyMention,
+  isChannelWhitelisted,
+  isChannelBlacklisted,
+  cleanText,
+  cleanResultText,
+  shouldReply,
+  formatConversationHistory
+}

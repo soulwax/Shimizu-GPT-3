@@ -38,26 +38,16 @@ const myselfDefault = {
  * It is outputted as a reply to the user who posed the prompt.
  */
 
-const getPrompt = async (prompt, guild, callerName) => {
+const getPrompt = async (inputText, guild, callerName, formattedHistory = '') => {
   const rawMode = guild.myself.rawMode
   const name = guild.myself.name
   const url = 'https://api.openai.com/v1/engines/davinci/completions'
   const intro = `${guild.myself.name} ${guild.premise}.`
-  const message = `${callerName}: ${prompt}`
-  let fullPrompt = ''
-  if (!rawMode) {
-    // The full prompt has the following structure as an example:
-    // intro:  "Shimizu is a chatbot who does things."
-    // (optional) primer: "Human: Hello Shimizu!"
-    //         "Shimizu: Hello! What an awesome day!"
-    // message: "You: What is your name?"
-    // "Shimizu: " ... AI generated response!
-    fullPrompt = `${intro}\n\n${message}\n${name}:`
-  } else if (rawMode) {
-    fullPrompt = prompt
-  }
+
+  let fullPrompt = rawMode ? inputText : `${intro}\n\n${formattedHistory}${callerName}: ${inputText}\n${name}:`
+
   if (VERBOSE) {
-    console.log(`Sending ${rawMode ? 'RAW' : 'full'} prompt...\n${fullPrompt} `)
+    console.log(`Sending ${rawMode ? 'RAW' : 'full'} prompt...\n${fullPrompt}`)
   }
 
   // For now, the API call uses myselfDefault parameters.
@@ -77,13 +67,14 @@ const getPrompt = async (prompt, guild, callerName) => {
 
   try {
     const response = await got.post(url, { json: params, headers: headers }).json()
-    output = `${response.choices[0].text}`
+    const output = `${response.choices[0].text}`
     const cleanedResultText = cleanResultText(output)
+
     if (VERBOSE) {
       console.log(`Cleaned Response:\n${cleanedResultText}`)
     }
-    if (rawMode) return output
-    else return cleanedResultText
+
+    return rawMode ? output : cleanedResultText
   } catch (err) {
     console.log(err)
   }

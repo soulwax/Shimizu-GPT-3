@@ -1,3 +1,4 @@
+//#region Explanation of lifecycle
 /**
  * Application lifecycle:
  * - initialize environment variables and required modules
@@ -9,6 +10,7 @@
  * - define event handlers for the client
  * - connect to discord and go online listening for events and slash commands
  */
+//#endregion
 
 //#region enviroment variables
 require('dotenv').config({})
@@ -19,14 +21,14 @@ const DB_CONNECTION_STRING = process.env.DB_CONNECTION_STRING
 
 //#region requires
 const mongoose = require(`mongoose`)
-const { MessageEmbed, Guild } = require(`discord.js`)
+const { MessageEmbed } = require(`discord.js`)
 const { SlashCommandBuilder } = require(`@discordjs/builders`)
 const { REST } = require(`@discordjs/rest`)
 const { Routes } = require(`discord-api-types/v9`)
 const { Client } = require(`discord.js`)
 const rest = new REST({ version: `9` }).setToken(TOKEN)
 //#region custom requires
-const { cleanText, shouldReply } = require('./helper.js')
+const { cleanText, shouldReply, formatConversationHistory } = require('./helper.js')
 const { getPrompt, myselfDefault } = require('./ai.js')
 // db requires
 const {
@@ -156,7 +158,7 @@ client.on(`ready`, async () => {
 //#endregion
 
 //#region slash command events (not including the ai response event)
-// handleEmbedCommand always expects a string to be returned, 
+// handleEmbedCommand always expects a string to be returned,
 // whereas handleStatusCommand expects an embed to be returned
 client.on('interactionCreate', async (interaction) => {
   // Toggle completion mode
@@ -259,16 +261,15 @@ client.on('interactionCreate', async (interaction) => {
     interaction,
     'whitelist',
     async (interaction) => {
-        const guildId = interaction.guild.id
-        const channelId = interaction.channel.id
-        const channelName = interaction.channel.name
-        const channel = await addChannelToWhitelist(guildId, channelId)
-        return `Added channel #${channelName} to the whitelist. Channel ID: ${channel}`
+      const guildId = interaction.guild.id
+      const channelId = interaction.channel.id
+      const channelName = interaction.channel.name
+      const channel = await addChannelToWhitelist(guildId, channelId)
+      return `Added channel #${channelName} to the whitelist. Channel ID: ${channel}`
     },
     'Channel whitelisted',
     '#ffffff'
-    )
-
+  )
 
   // Reply with a list of commands
   handleStatusCommand(
@@ -302,7 +303,7 @@ client.on('interactionCreate', async (interaction) => {
 })
 //#endregion
 
-//#region main message event
+//#region main message event handler for the ai response
 client.on('messageCreate', async (message) => {
   if (message.author.bot) return
 
@@ -341,7 +342,11 @@ client.on('messageCreate', async (message) => {
     message.channel.sendTyping()
     // TODO: Put past messages into the prompt
     const pastMessages = await getConversationMessages(channelId)
-    let response = await getPrompt(isRawMode ? rawContent : cleanedText, guildInfo, author)
+    const formattedHistory = formatConversationHistory(pastMessages, myName)
+    // Include the past messages as part of the prompt
+    const prompt = formattedHistory + `**${authorUsername}** said: ${isRawMode ? rawContent : cleanedText}\n`
+
+    let response = await getPrompt(isRawMode ? rawContent : cleanedText, guildInfo, author, formattedHistory);
 
     if (response === undefined) {
       response = 'I am sorry, I do not understand.'
@@ -357,6 +362,7 @@ client.on('messageCreate', async (message) => {
 })
 //#endregion
 
+//#region guild events
 // When invited to a guild, join the guild and add the guild to the database
 // ! UNTESTED
 client.on('guildCreate', async (guild) => {
@@ -369,12 +375,17 @@ client.on('guildCreate', async (guild) => {
   await addChanceToRespondToGuild(guild.id, 0.05)
   await addConversationToGuild(guild.id, [])
 })
+//#endregion
 
+//#region shutdown
 //On discord bot shutdown
 client.on('disconnect', async () => {
   // Write back changes to the database
   await updateGuildVariables(guilds)
   console.log('Disconnected')
 })
+//#endregion
 
+//#region login
 client.login(TOKEN)
+//#endregion
