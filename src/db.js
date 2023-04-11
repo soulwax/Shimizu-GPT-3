@@ -299,7 +299,18 @@ const getRawModeForGuild = async (guildID) => {
 const setWhitelistedChannelForGuild = async (guildID, channelID) => {
   const guild = await getGuild(guildID)
   if (!guild) return
-  await guild.addChannelToWhitelist(channelID)
+  // check if whitelisted channels are already set
+  if (!guild.myself.whitelistedChannels) {
+    guild.myself.whitelistedChannels = []
+  }
+  // check if channel is already whitelisted
+  if (guild.myself.whitelistedChannels.includes(channelID)) {
+    console.log(`\tChannel ${channelID} is already whitelisted for guild ${guildID}`)
+    return guild.myself.whitelistedChannels || null // setting always returns the current value (for convenience)
+  }
+  // add channel to whitelist
+  guild.myself.whitelistedChannels.push(channelID)
+  await guild.save()
   console.log(`\tAdded channel ${channelID} to whitelist for guild ${guildID}`)
   await updateGuildCache(guild)
   return guild.myself.whitelistedChannels || null // setting always returns the current value (for convenience)

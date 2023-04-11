@@ -15,7 +15,7 @@ require('dotenv').config({})
 const TOKEN = process.env.DISCORD_TOKEN
 const VERBOSE = process.env.VERBOSE === 'true' ? true : false
 const DB_CONNECTION_STRING = process.env.DB_CONNECTION_STRING
-//#endregion enviroment variables
+//#endregion
 
 //#region requires
 const mongoose = require(`mongoose`)
@@ -26,14 +26,7 @@ const { Routes } = require(`discord-api-types/v9`)
 const { Client } = require(`discord.js`)
 const rest = new REST({ version: `9` }).setToken(TOKEN)
 //#region custom requires
-const {
-  getRandom,
-  replyMention,
-  isChannelWhitelisted,
-  isChannelBlacklisted,
-  cleanText,
-  shouldReply
-} = require('./helper.js')
+const { cleanText, shouldReply } = require('./helper.js')
 const { getPrompt, myselfDefault } = require('./ai.js')
 // db requires
 const {
@@ -49,10 +42,10 @@ const {
   updateGuildVariables,
   getMyselfForGuild,
   getGuild: getGuildFromDB,
-  setWhitelistedChannelForGuild: setWL
+  setWhitelistedChannelForGuild: addChannelToWhitelist
 } = require('./db.js')
-//#endregion custom requires
-//#endregion requires
+//#endregion
+//#endregion
 
 //#region mongoose
 mongoose.connect(DB_CONNECTION_STRING, { useNewUrlParser: true })
@@ -61,13 +54,13 @@ db.on(`error`, console.error.bind(console, `connection error:`))
 db.once(`open`, () => {
   console.log(`Connected to MongoDB`)
 })
-//#endregion mongoose
+//#endregion
 
 //#region client
 const client = new Client({
   intents: myselfDefault.intents
 }).setMaxListeners(15)
-//#endregion client
+//#endregion
 
 //#region commands
 const commands = [
@@ -94,7 +87,7 @@ const commands = [
     .setName('togglerawmode')
     .setDescription('Toggles the raw mode. This mode will disable the initial prompt and send the raw text instead.')
 ]
-//#endregion commands
+//#endregion
 
 //#region REFRESH
 ;(async () => {
@@ -110,24 +103,42 @@ const commands = [
     console.error(error)
   }
 })()
-//#endregion REFRESH
+//#endregion
 
 //#region Discord specific helper functions
-const getStatusForGuildEmbed = async (guild) => {
+const getStatusForGuildEmbed = async (interaction) => {
   const embed = new MessageEmbed()
-  const guildName = guild.name
-  const completionMode = await getCompletionModeForGuild(guild.id)
-  const rawMode = await getRawModeForGuild(guild.id)
-  const chance = await getChanceForGuild(guild.id)
+  const completionMode = await getCompletionModeForGuild(interaction.guild.id)
+  const rawMode = await getRawModeForGuild(interaction.guild.id)
+  const chance = await getChanceForGuild(interaction.guild.id)
   const completionFieldText = `Completion mode: ${completionMode ? 'on' : 'off'}`
   const rawFieldText = `Raw mode: ${rawMode ? 'on' : 'off'}`
   const chanceFieldText = `My chance to respond randomly: ${chance * 100}%`
-  embed.setTitle(`My settings for ${guildName}:`)
-  embed.setColor(`#00ab69`)
   embed.setDescription(`${completionFieldText}\n${rawFieldText}\n${chanceFieldText}`)
   return embed
 }
-//#endregion Discord specific helper functions
+//#endregion
+
+//#region command helper function(s)
+const handleEmbedForCommand = async (interaction, commandName, commandFunction, embedTitle, embedColor) => {
+  if (!interaction.isCommand()) return
+  if (interaction.commandName === commandName) {
+    const newValue = await commandFunction(interaction)
+    const embed = new MessageEmbed()
+      .setTitle(`${embedTitle} for ${interaction.guild.name}`)
+      .setDescription(newValue)
+      .setColor(embedColor)
+    await interaction.reply({ embeds: [embed] })
+  }
+}
+
+async function handleStatusCommand(interaction, commandName, execute, title, color) {
+  if (!interaction.isCommand() || interaction.commandName !== commandName) return
+  const embed = await execute(interaction)
+  embed.setTitle(title).setColor(color)
+  await interaction.reply({ embeds: [embed] })
+}
+//#endregion
 
 //#region ready event
 client.on(`ready`, async () => {
@@ -142,172 +153,154 @@ client.on(`ready`, async () => {
   await syncGuildsWithDB(client, myselfDefault)
   //#endregion refresh guilds
 })
-//#endregion ready event
+//#endregion
 
-//#region slash command events
-
-//#region ping command
+//#region slash command events (not including the ai response event)
+// handleEmbedCommand always expects a string to be returned, 
+// whereas handleStatusCommand expects an embed to be returned
 client.on('interactionCreate', async (interaction) => {
-  if (!interaction.isCommand()) return
-  if (interaction.commandName === `ping`) {
-    // Measure response time ping
-    const ping = Date.now() - interaction.createdTimestamp.valueOf()
-    const embed = new MessageEmbed().setTitle(`Pong!`).setDescription(`${ping}ms`).setColor(`#00ff00`)
-    if (VERBOSE) console.log(`Pinged (${ping}ms by: ${interaction.author.tag} at ${interaction.createdAt}.`)
-    await interaction.reply({ embeds: [embed] })
-  }
-})
-//#endregion ping command
+  // Toggle completion mode
+  handleEmbedForCommand(
+    interaction,
+    'togglecompletion',
+    async (interaction) => {
+      const guildId = interaction.guild.id
+      const currentValue = await getCompletionModeForGuild(guildId)
+      const newValue = await setCompletionModeForGuild(guildId, !currentValue)
+      return `Completion mode is now: ${newValue}`
+    },
+    'Completion mode toggled',
+    '#23ff67'
+  )
+  // Toggle raw mode
+  handleEmbedForCommand(
+    interaction,
+    'togglerawmode',
+    async (interaction) => {
+      const guildId = interaction.guild.id
+      const currentValue = await getRawModeForGuild(guildId)
+      const newValue = await setRawModeForGuild(guildId, !currentValue)
+      return `Raw mode is now: ${newValue}`
+    },
+    'Raw mode toggled',
+    '#23ff67'
+  )
 
-//#region shutup command
-// shutup = set chance to 0
-client.on('interactionCreate', async (interaction) => {
-  if (!interaction.isCommand()) return
-  if (interaction.commandName === `shutup`) {
-    // Set the chance to respond to 0%
-    await setChanceForGuild(interaction.guild.id, 0)
-    const embed = new MessageEmbed()
-      .setTitle(`Chance to respond for ${interaction.guild.name} was set to 0%`)
-      .setDescription(`I will not respond to any messages randomly anymore. :(`)
-      .setColor(`#9fff00`)
-    await interaction.reply({ embeds: [embed] })
-  }
-})
-//#endregion shutup command
+  // Set chance to respond to a specific value
+  handleEmbedForCommand(
+    interaction,
+    'setchance',
+    async (interaction) => {
+      const integer = interaction.options.getInteger('integer')
+      if (integer >= 0 && integer <= 100) {
+        console.log(`Setting chance to ${integer}%`)
+        const guildId = interaction.guild.id
+        const newValue = await setChanceForGuild(guildId, integer > 0 ? integer / 100 : 0)
+        return `Chance to respond is now: ${newValue * 100}%`
+      }
+    },
+    'Chance to respond',
+    '#11ffab'
+  )
 
-//#region reset command
-// reset = sets all guild variables to their default values
-client.on('interactionCreate', async (interaction) => {
-  if (!interaction.isCommand()) return
-  if (interaction.commandName === `reset`) {
-    await setChanceForGuild(interaction.guild.id, myselfDefault.chanceToRespond)
-    await setCompletionModeForGuild(interaction.guild.id, myselfDefault.completionMode)
-    await setRawModeForGuild(interaction.guild.id, myselfDefault.rawMode)
-    const embed = await getStatusForGuildEmbed(interaction.guild)
-    await interaction.reply({ embeds: [embed] })
-  }
-})
-//#endregion reset command
+  // Measure response time ping
+  handleEmbedForCommand(
+    interaction,
+    'ping',
+    async (interaction) => {
+      const ping = Date.now() - interaction.createdTimestamp.valueOf()
+      if (VERBOSE) console.log(`Pinged (${ping}ms by: ${interaction.user.tag} at ${interaction.createdAt}.`)
+      return `Pong! ${ping}ms`
+    },
+    'Pong!',
+    '#00ff00'
+  )
 
-//#region status command
-// status = report current status on variables
-client.on('interactionCreate', async (interaction) => {
-  if (!interaction.isCommand()) return
-  if (interaction.commandName === `status`) {
-    // Report current status on variables
-    const embed = await getStatusForGuildEmbed(interaction.guild)
-    await interaction.reply({ embeds: [embed] })
-  }
-})
-//#endregion status command
+  // Set the chance to respond to 0%
+  handleEmbedForCommand(
+    interaction,
+    'shutup',
+    async (interaction) => {
+      await setChanceForGuild(interaction.guild.id, 0)
+      return `I will not respond to any messages randomly anymore. :(`
+    },
+    `Chance to respond for ${interaction.guild.name} was set to 0%`,
+    '#9fff00'
+  )
 
-//#region togglecompletion command
-// toggleCompletion = toggle completion mode
-client.on('interactionCreate', async (interaction) => {
-  if (!interaction.isCommand()) return
-  if (interaction.commandName === `togglecompletion`) {
-    // Toggle completion mode
-    const newValue = await setCompletionModeForGuild(
-      interaction.guild.id,
-      !(await getCompletionModeForGuild(interaction.guild.id))
+  // Reset guild settings to default
+  handleStatusCommand(
+    interaction,
+    'reset',
+    async (interaction) => {
+      await setChanceForGuild(interaction.guild.id, myselfDefault.chanceToRespond)
+      await setCompletionModeForGuild(interaction.guild.id, myselfDefault.completionMode)
+      await setRawModeForGuild(interaction.guild.id, myselfDefault.rawMode)
+      const embed = await getStatusForGuildEmbed(interaction)
+      return embed
+    },
+    'Settings reset',
+    '#ff0000'
+  )
+
+  // Report current status on variables
+  handleStatusCommand(
+    interaction,
+    'status',
+    async (interaction) => {
+      const embed = await getStatusForGuildEmbed(interaction)
+      return embed
+    },
+    'Status report',
+    '#0000ff'
+  )
+
+  handleEmbedForCommand(
+    interaction,
+    'whitelist',
+    async (interaction) => {
+        const guildId = interaction.guild.id
+        const channelId = interaction.channel.id
+        const channelName = interaction.channel.name
+        const channel = await addChannelToWhitelist(guildId, channelId)
+        return `Added channel #${channelName} to the whitelist. Channel ID: ${channel}`
+    },
+    'Channel whitelisted',
+    '#ffffff'
     )
-    const embed = new MessageEmbed()
-      .setTitle(`Completion mode toggled for ${interaction.guild.name}`)
-      .setDescription(`Completion mode is now: ${newValue}`)
-      .setColor(`#23ff67`)
-    await interaction.reply({ embeds: [embed] })
-  }
-})
-//#endregion togglecompletion command
 
-//#region command raw mode
-// togglerawmode = toggle raw mode
-client.on('interactionCreate', async (interaction) => {
-  if (!interaction.isCommand()) return
-  if (interaction.commandName === `togglerawmode`) {
-    // Toggle raw mode
-    const newValue = await setRawModeForGuild(interaction.guild.id, !(await getRawModeForGuild(interaction.guild.id)))
-    const embed = new MessageEmbed()
-      .setTitle(`Raw mode toggled for ${interaction.guild.name}`)
-      .setDescription(`Raw mode is now: ${newValue}`)
-      .setColor(`#23ff67`)
-    await interaction.reply({ embeds: [embed] })
-  }
-})
-//#endregion command raw mode
 
-//#region setchance command
-// setchance = set chance to a specific value in %
-client.on('interactionCreate', async (interaction) => {
-  if (!interaction.isCommand()) return
-  if (interaction.commandName === `setchance`) {
-    // Set the chance to respond to a specific value
-    const integer = interaction.options.getInteger('integer')
-    if (integer >= 0 && integer <= 100) {
-      console.log(`Setting chance to ${integer}%`)
-      const newValue = await setChanceForGuild(interaction.guild.id, integer > 0 ? integer / 100 : 0)
+  // Reply with a list of commands
+  handleStatusCommand(
+    interaction,
+    'help',
+    async () => {
       const embed = new MessageEmbed()
-        .setTitle(`Chance to respond for ${interaction.guild.name}`)
-        .setDescription(`Chance to respond is now: ${newValue * 100}%`)
-        .setColor(`#11ffab`)
-      await interaction.reply({ embeds: [embed] })
-    }
-  }
+        .setTitle('Commands')
+        .setDescription(
+          `
+          **@${client.user.username}**: guaranteed response to your message.
+          **/help** - List of commands.
+          **/ping** - Measures the response time of the bot.
+          **/reset** - Reset the chance to respond to 5%.
+          **/shutup** - Sets the chance to respond to 0%.
+          **/status** - Reports the current status of global variables like chance to respond and completion mode.
+          **/setchance** - Sets the chance to respond to a certain percentage.
+          **/togglecompletion** - Toggles the completion mode.
+          **/togglerawmode** - Toggles the raw mode. The prompt will be sent as is.
+          **/whitelist** - Adds the channel the command was sent in to the whitelist.
+          **Written by**: soulwax#7588
+          **Github:**: https://github.com/soulwax/Shimizu-GPT-3
+          `
+        )
+        .setThumbnail('https://i.imgur.com/sP8zuGr.png')
+      return embed
+    },
+    'Commands',
+    '#01ff77'
+  )
 })
-//#endregion setchance command
-
-//#region whitelist command
-// whitelist = add a user to the whitelist
-client.on('interactionCreate', async (interaction) => {
-  if (!interaction.isCommand()) return
-  if (interaction.commandName === `whitelist`) {
-    // Add the channel the command was sent in to the whitelist
-    // Get channel id from interaction
-    const channel = interaction.channel.id
-    if (channel) {
-      // find Guild in DB
-      const guild = await setWL(interaction.guild.id, channel)
-      // Reply to interaction
-      const embed = new MessageEmbed()
-        .setTitle(`Whitelist for ${interaction.guild.name}`)
-        .setDescription(`Channel ${channel.name} was added to the whitelist.`)
-        .setColor(`#11ffab`)
-      await interaction.reply({ embeds: [embed] })
-    }
-  }
-})
-
-//#region help command
-// help = list of commands
-client.on('interactionCreate', async (interaction) => {
-  if (!interaction.isCommand()) return
-  if (interaction.commandName === `help`) {
-    // Reply with a list of commands
-    const embed = new MessageEmbed()
-      .setTitle(`Commands`)
-      .setDescription(
-        `
-      **@${client.user.username}**: guaranteed response to your message.
-      **/help** - List of commands.
-      **/ping** - Measures the response time of the bot.
-      **/reset** - Reset the chance to respond to 5%.
-      **/shutup** - Sets the chance to respond to 0%.
-      **/status** - Reports the current status of global variables like chance to respond and completion mode.
-      **/setchance** - Sets the chance to respond to a certain percentage.
-      **/togglecompletion** - Toggles the completion mode.
-      **/togglerawmode** - Toggles the raw mode. The prompt will be sent as is.
-      **/whitelist** - Adds the channel the command was sent in to the whitelist.
-      **Written by**: soulwax#5358
-      **Github:**: https://github.com/soulwax/Shimizu-GPT-3
-      `
-      )
-      .setThumbnail('https://i.imgur.com/sP8zuGr.png')
-      .setColor(`#01ff77`)
-    await interaction.reply({ embeds: [embed] })
-  }
-})
-//#endregion help command
-//#endregion slash command events
+//#endregion
 
 //#region main message event
 client.on('messageCreate', async (message) => {
@@ -362,9 +355,10 @@ client.on('messageCreate', async (message) => {
     await message.reply(response)
   }
 })
-//#endregion main message event
+//#endregion
 
 // When invited to a guild, join the guild and add the guild to the database
+// ! UNTESTED
 client.on('guildCreate', async (guild) => {
   await addGuildToDB(guild.id)
   await addMyselfToGuild(guild.id)
