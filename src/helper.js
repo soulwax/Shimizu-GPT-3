@@ -1,7 +1,7 @@
 require('dotenv').config()
 
 const VERBOSE = process.env.VERBOSE === 'true' ? true : false
-
+const Channel = require('./models/channel')
 /*
  * First pattern: /\<@[^>]*>/g
  *
@@ -126,10 +126,16 @@ const replyMention = (message, client) => {
  * @returns {Boolean}
  */
 
-const isChannelWhitelisted = (message, whitelist) => {
-  const channelWhitelisted = whitelist.includes(message.channel.id)
-  if (channelWhitelisted && VERBOSE) console.log(`Responded due to channel whitelist: ${message.channel.id}`)
-  return channelWhitelisted
+const isChannelWhitelisted = async (message, whitelist) => {
+  // check if whitelist is an object that has an 'includes' function
+  // if (!whitelist) return true
+  // if (typeof whitelist.includes !== 'function') return false
+  const whitelistedChannels = await Channel.find({whitelisted: true}).lean().exec()
+  // go through all whitelisted channels and compared channelId
+  const result = whitelistedChannels.some(channel => channel.channelId === message.channel.id)
+
+  console.log(`Channel ${message.channel.id} is whitelisted: ${result}`)
+  return result
 }
 
 /*
@@ -140,6 +146,7 @@ const isChannelWhitelisted = (message, whitelist) => {
  */
 
 const isChannelBlacklisted = (message, blacklist) => {
+  // if (!blacklist) return false
   return blacklist.includes(message.channel.id)
 }
 
@@ -191,10 +198,10 @@ const cleanResultText = (text) => {
   return resultReplacements.reduce((acc, { pattern, replacement }) => acc.replace(pattern, replacement), text).trim()
 }
 
-const shouldReply = (message, client, chanceToRespond, whiteList, blackList) => {
+const shouldReply = async (message, client, chanceToRespond, whiteList, blackList) => {
   return (
     (replyMention(message, client) && chanceToRespond > 0) ||
-    isChannelWhitelisted(message, whiteList) ||
+    await isChannelWhitelisted(message, whiteList) ||
     (getRandom(chanceToRespond) && !isChannelBlacklisted(message, blackList))
   )
 }
@@ -205,10 +212,9 @@ function formatConversationHistory(messages, myName, maxHistoryLength = 10) {
 
   let history = ''
   limitedMessages.forEach((message) => {
-    const { content, timestamp, author } = message
-    const formattedTimestamp = timestamp.toLocaleString()
+    const { content, author } = message
     const username = author === myName ? `**${author} (AI)**` : `**${author}**`
-    history += `${formattedTimestamp} ${username}: ${content}\n`
+    history += `${username}: ${content}\n`
   })
 
   return history

@@ -45,8 +45,16 @@ const getPrompt = async (inputText, guild, callerName, formattedHistory = '') =>
   const intro = `${guild.myself.name} ${guild.premise}.`
 
   let fullPrompt = rawMode ? inputText : `${intro}\n\n${formattedHistory}${callerName}: ${inputText}\n${name}:`
+  // Get all strings in between two **'s
+  const boldedStrings = fullPrompt.match(/\*\*(.*?)\*\*/g)
+  // Make boldedStrings unique
+  const uniqueBoldedStrings = [...new Set(boldedStrings)]
+  const stop = ['\n\n', 'Shimizu:']
+  // push uniqueBoldedStrings to stop
+  stop.push(...uniqueBoldedStrings)
 
   if (VERBOSE) {
+    console.log(`Original caller: ${callerName.username}`)
     console.log(`Sending ${rawMode ? 'RAW' : 'full'} prompt...\n${fullPrompt}`)
   }
 
@@ -58,7 +66,13 @@ const getPrompt = async (inputText, guild, callerName, formattedHistory = '') =>
     top_p: myselfDefault.top_p,
     frequency_penalty: myselfDefault.frequency_penalty,
     presence_penalty: myselfDefault.presence_penalty,
-    stop: [`${callerName}:`, `${name}:`, '\n\n', 'You:']
+    stop: stop
+  }
+
+  if (VERBOSE) {
+    console.log(`Sending ${rawMode ? 'RAW' : 'full'} prompt...\n${fullPrompt}`)
+    console.log(`Full Params: \n`)
+    console.log(params)
   }
 
   const headers = {
@@ -69,11 +83,11 @@ const getPrompt = async (inputText, guild, callerName, formattedHistory = '') =>
     const response = await got.post(url, { json: params, headers: headers }).json()
     const output = `${response.choices[0].text}`
     const cleanedResultText = cleanResultText(output)
-
     if (VERBOSE) {
+      console.log(`Raw Response:\n${output}`)
       console.log(`Cleaned Response:\n${cleanedResultText}`)
     }
-
+    
     return rawMode ? output : cleanedResultText
   } catch (err) {
     console.log(err)

@@ -1,6 +1,7 @@
-const { myselfDefault } = require('./ai.js')
-const Guild = require('./models/guild.js')
-const Conversation = require('./models/conversation.js')
+const { myselfDefault } = require('./ai')
+const Guild = require('./models/guild')
+const Channel = require('./models/channel')
+const Conversation = require('./models/conversation')
 
 /**
  * Function that syncs guilds between client and database
@@ -295,25 +296,62 @@ const getRawModeForGuild = async (guildID) => {
   }
 }
 
-// Set whitelisted channel for guild by ID
-const setWhitelistedChannelForGuild = async (guildID, channelID) => {
-  const guild = await getGuild(guildID)
-  if (!guild) return
-  // check if whitelisted channels are already set
-  if (!guild.myself.whitelistedChannels) {
-    guild.myself.whitelistedChannels = []
+// // Set whitelisted channel for guild by ID
+// const setWhitelistedChannelForGuild = async (guildID, channelID) => {
+//   const guild = await getGuild(guildID)
+//   if (!guild) return
+//   // check if whitelisted channels are already set
+//   if (!guild.myself.whitelistedChannels) {
+//     guild.myself.whitelistedChannels = []
+//   }
+//   // check if channel is already whitelisted
+//   if (guild.myself.whitelistedChannels.includes(channelID)) {
+//     console.log(`\tChannel ${channelID} is already whitelisted for guild ${guildID}`)
+//     return guild.myself.whitelistedChannels || null // setting always returns the current value (for convenience)
+//   }
+//   // add channel to whitelist
+//   guild.myself.whitelistedChannels.push(channelID)
+//   await guild.save()
+//   console.log(`\tAdded channel ${channelID} to whitelist for guild ${guildID}`)
+//   await updateGuildCache(guild)
+//   return guild.myself.whitelistedChannels || null // setting always returns the current value (for convenience)
+// }
+
+const setWhitelistedChannelForGuild = async (interaction) => {
+  // Model for channel:
+  // const channelSchema = new Schema({
+  //   channelId: {
+  //     type: String,
+  //     required: true,
+  //     unique: true
+  //     },
+  //     channelName: {
+  //         type: String,
+  //         required: true,
+  //     },
+  //     isWhiteListed: {
+  //         type: Boolean,
+  //     },
+  //     isBlackListed: {
+  //         type: Boolean,
+  //     }
+  // })
+  // We don't need any guild info here, just the channel ID
+  const channelId = interaction.channel.id
+  const channelName = interaction.channel.name
+  const alreadyWhitelisted = await Channel.findOne({ channelId: channelId })
+  if (alreadyWhitelisted) {
+    console.log(`\tChannel ${channelId} is already whitelisted.`)
+    return
   }
-  // check if channel is already whitelisted
-  if (guild.myself.whitelistedChannels.includes(channelID)) {
-    console.log(`\tChannel ${channelID} is already whitelisted for guild ${guildID}`)
-    return guild.myself.whitelistedChannels || null // setting always returns the current value (for convenience)
-  }
-  // add channel to whitelist
-  guild.myself.whitelistedChannels.push(channelID)
-  await guild.save()
-  console.log(`\tAdded channel ${channelID} to whitelist for guild ${guildID}`)
-  await updateGuildCache(guild)
-  return guild.myself.whitelistedChannels || null // setting always returns the current value (for convenience)
+  new Channel({
+    channelId: channelId,
+    channelName: channelName,
+    isWhiteListed: true,
+    isBlackListed: false
+  }).save()
+  console.log(`\tAdded channel ${channelId} to whitelist.`)
+  // await updateGuildCache(guild)
 }
 
 const setPremiseForGuild = async (guildID, premise) => {
