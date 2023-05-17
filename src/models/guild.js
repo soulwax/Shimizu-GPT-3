@@ -28,14 +28,6 @@ const { Schema } = mongoose;
       required: true,
       default: 'is a chat bot that pretends to be a real discord member'
     },
-    whitelistedChannels: {
-      type: [String],
-      required: false
-    },
-    blacklistedChannels: {
-      type: [String],
-      required: false
-    },
     myself: {
       myId: {type: Number, required: true},
       name: {type: String, required: true},

@@ -16,11 +16,10 @@
 require('dotenv').config({})
 const TOKEN = process.env.DISCORD_TOKEN
 const VERBOSE = process.env.VERBOSE === 'true' ? true : false
-const DB_CONNECTION_STRING = process.env.DB_CONNECTION_STRING
+const mongoConnect = require('./db-connect')
 //#endregion
 
 //#region requires
-const mongoose = require(`mongoose`)
 const { MessageEmbed } = require(`discord.js`)
 const { SlashCommandBuilder } = require(`@discordjs/builders`)
 const { REST } = require(`@discordjs/rest`)
@@ -50,12 +49,15 @@ const {
 //#endregion
 
 //#region mongoose
-mongoose.connect(DB_CONNECTION_STRING, { useNewUrlParser: true })
-const db = mongoose.connection
-db.on(`error`, console.error.bind(console, `connection error:`))
-db.once(`open`, () => {
-  console.log(`Connected to MongoDB`)
-})
+// mongoose.connect(DB_CONNECTION_STRING, { useNewUrlParser: true })
+// const db = mongoose.connection
+// db.on(`error`, console.error.bind(console, `connection error:`))
+// db.once(`open`, () => {
+//   console.log(`Connected to MongoDB`)
+// })
+// Call the mongoConnect function from db-connect.js
+
+
 //#endregion
 
 //#region client
@@ -67,6 +69,14 @@ const client = new Client({
 //#region commands
 const commands = [
   new SlashCommandBuilder().setName(`experiment`).setDescription(`Start an experiment`),
+  new SlashCommandBuilder().setName(`last`).setDescription(`Start an experiment`).addIntegerOption((option) => {
+    return option
+      .setName('integer')
+      .setDescription('The chance to respond to a specific value.')
+      .setRequired(true)
+      .setMinValue(0)
+      .setMaxValue(100)
+  }),
   new SlashCommandBuilder().setName('help').setDescription('Replies with a list of commands.'),
   new SlashCommandBuilder().setName('ping').setDescription('Replies with "pong" if the bot is online.'),
   new SlashCommandBuilder().setName('reset').setDescription('Resets the chance to respond to 5%.'),
@@ -144,6 +154,7 @@ async function handleStatusCommand(interaction, commandName, execute, title, col
 
 //#region ready event
 client.on(`ready`, async () => {
+  await mongoConnect()
   console.log(`Logged in as ${client.user.tag}!`)
   console.log(
     `${myselfDefault.name} has started, with ${client.users.cache.size} users, in ${client.channels.cache.size} channels of ${client.guilds.cache.size} guilds.`
@@ -218,6 +229,35 @@ client.on('interactionCreate', async (interaction) => {
     '#00ff00'
   )
 
+    // Set chance to respond to a specific value
+    handleEmbedForCommand(
+      interaction,
+      'last',
+      async (interaction) => {
+        const integer = interaction.options.getInteger('integer')
+        if (integer <= 0) return `Please enter a positive integer.`
+        else {
+          // Get last n messages
+          const messages = await interaction.channel.messages.fetch({ limit: integer })
+          // Filter out messages from bots
+          const filteredMessages = messages.filter((message) => !message.author.bot)
+          // Get the last message
+          const lastMessage = filteredMessages.last()
+          // Get the last message's content
+          const lastMessageContent = lastMessage.content
+          // Get the last message's author
+          const lastMessageAuthor = lastMessage.author
+          // Return all last messages
+          return `Last ${integer} messages:\n${filteredMessages
+            .map((message) => `${message.author.tag}: ${message.content}`)
+            .join('\n')}`
+
+        }
+      },
+      'Chance to respond',
+      '#abffab'
+    )
+
   // Set the chance to respond to 0%
   handleEmbedForCommand(
     interaction,
@@ -261,11 +301,10 @@ client.on('interactionCreate', async (interaction) => {
     interaction,
     'whitelist',
     async (interaction) => {
-      const guildId = interaction.guild.id
-      const channelId = interaction.channel.id
       const channelName = interaction.channel.name
-      const channel = await addChannelToWhitelist(guildId, channelId)
-      return `Added channel #${channelName} to the whitelist. Channel ID: ${channel}`
+      const channel = await addChannelToWhitelist(interaction)
+      const channelID = interaction.channel.id
+      return `Added channel #${channelName} to the whitelist. Channel ID: ${channelID}`
     },
     'Channel whitelisted',
     '#ffffff'
@@ -335,7 +374,7 @@ client.on('messageCreate', async (message) => {
 
   await saveMessage(channelId, rawContent, authorUsername)
 
-  if (shouldReply(message, client, chanceToRespond, whiteList, blackList)) {
+  if (await shouldReply(message, client, chanceToRespond, whiteList, blackList)) {
     const cleanedText = cleanText(rawContent, isCompletionMode)
     if (cleanedText.length <= 0) return
 
