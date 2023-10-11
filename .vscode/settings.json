@@ -17,7 +17,9 @@
         "titleBar.activeBackground": "#18081b",
         "titleBar.activeForeground": "#e7e7e7",
         "titleBar.inactiveBackground": "#18081b99",
-        "titleBar.inactiveForeground": "#e7e7e799"
+        "titleBar.inactiveForeground": "#e7e7e799",
+        "statusBar.debuggingBackground": "#0b1b08",
+        "statusBar.debuggingForeground": "#e7e7e7"
     },
     "peacock.remoteColor": "#18081b"
 }
